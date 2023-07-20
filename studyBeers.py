@@ -8,6 +8,8 @@ from pprint import pprint
 from glob import glob
 from plottools import *
 import datetime as dt
+from iminuit import Minuit
+from iminuit.cost import LeastSquares
 
 import matplotlib.pyplot as plt
 plt.switch_backend('agg') # when on batch
@@ -59,22 +61,6 @@ plt.close()
 
 
 ###############################################################################
-# time evolution
-###############################################################################
-df['Date'] = pd.to_datetime(df['Date'], errors='coerce',format='%d/%m/%Y')
-fig, ax = plt.subplots(figsize=(16*.6,9*.6))
-plt.tight_layout()
-plt.margins(x=0)
-plt.scatter(df.Date, df.Number, color='#f1bf4b', s=20)
-plt.xlabel('Year')
-plt.ylabel('Total beers')
-ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
-applyUniformFont(ax,24)
-plt.savefig("growth.pdf")
-plt.close()
-
-
-###############################################################################
 # ABV per country
 ###############################################################################
 dGrp = df.groupby("Country")
@@ -95,4 +81,69 @@ ax.set_xticklabels(dh.index, fontsize=10, rotation=45)
 plt.tick_params(axis='x', pad=1)
 plt.tick_params(axis='both', top=False,right=False)
 plt.savefig("countryABVs.pdf")
+plt.close()
+
+
+###############################################################################
+# time evolution
+###############################################################################
+df['Date'] = pd.to_datetime(df['Date'], errors='coerce',format='%d/%m/%Y')
+day0 = np.mean(df.Date).date()
+dDates = df[pd.notna(df['Date'])][['Number','Date']]
+dDates = dDates[pd.notna(dDates['Number'])]
+dDates['x'] = [(x.date() - day0).days for x in dDates['Date']]
+dDates = dDates.query('x>-1200')
+# dDates['costheta'] = dDates['x'] * 2 / (dDates.x.max() - dDates.x.min())
+
+# fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+# plt.tight_layout()
+# plt.margins(x=0)
+# plt.scatter(df.Date, df.Number, color='#f1bf4b', s=20)
+# plt.xlabel('Year')
+# plt.ylabel('Total beers')
+# ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
+# applyUniformFont(ax,24)
+# plt.savefig("growth.pdf")
+# plt.close()
+
+# fit a 2nd order Chebychev polynomial
+def cheby2(x, c0=0, c1=1, c2=0):
+    return c0 + c1 * x + c2 * (2*x*x - 1)
+# fit a 4thd order Chebychev polynomial
+def cheby4(x, c0=0, c1=1, c2=0, c3=0, c4=0):
+    return cheby2(x,c0,c1,c2) + \
+    c3 * (4*x*x*x - 3*x) + \
+    c4 * (8*x*x*x*x - 8*x*x - 1)
+
+minimiser = Minuit(LeastSquares(np.array(dDates.x), np.array(dDates.Number), np.ones_like(dDates.Number), cheby4), 
+    c0 = 600, 
+    c1 = .5,
+    c2 = 1e-5,
+    c3 = 1e-5,
+    c4 = 1e-5,
+    )
+result = minimiser.migrad()
+param_hesse = result.hesse()
+param_errors = result.errors
+print(result)
+
+fit_info = [
+    f"$\\chi^2$ / $n_\\mathrm{{dof}}$ = {minimiser.fval:1.1e} / {len(dDates) - minimiser.nfit}",
+]
+for p, v, e in zip(minimiser.parameters, minimiser.values, minimiser.errors):
+    if not minimiser.fixed[p]:
+        fit_info.append(f"{p} = ${v:1.1e} \\pm {e:1.1e}$")
+
+fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+plt.tight_layout()
+plt.margins(x=0)
+plt.xlabel('Year')
+plt.ylabel('Total beers')
+plt.plot(np.sort(dDates.Date), cheby4(np.sort(dDates.x), *minimiser.values), color='#751D1D', lw=2.5, zorder=-99, label='Fit')
+plt.scatter(dDates.Date, dDates.Number, color='#f1bf4b', s=10, label='Data')
+plotOrderedLegend([1,0])
+ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
+applyUniformFont(ax,24)
+plt.text(.05,.75, "\n".join(fit_info), transform=ax.transAxes, fontsize=18, ha='left', va='top')
+plt.savefig("growth.pdf")
 plt.close()
