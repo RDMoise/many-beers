@@ -19,6 +19,11 @@ style.use(style.LHCb2)
 import matplotlib.dates as mdates
 
 df = pd.read_csv("1202beers.csv", delimiter=';', encoding='utf-8')
+plotList = open("plotList.md", "w")
+
+def saveAndListPlot(plotname, url='many-beers/blob/main/'):
+    plt.savefig(f"{plotname}")
+    plotList.write(f"[{plotname}](https://nbviewer.org/github/RDMoise/{url}{plotname})\n")
 
 ###############################################################################
 # histogram of ABVs
@@ -32,7 +37,7 @@ histplot(hABV, color='#f1bf4b', histtype="step")
 plt.xlabel('ABV [%]')
 plt.ylabel("Beers / 1%")
 applyUniformFont(ax,24)
-plt.savefig("histABV.pdf")
+saveAndListPlot("histABV.pdf")
 plt.close()
 
 
@@ -54,9 +59,9 @@ applyUniformFont(ax,20)
 ax.set_xticklabels(dg.index, fontsize=10, rotation=45)
 plt.tick_params(axis='x', pad=1)
 plt.tick_params(axis='both', top=False,right=False)
-plt.savefig("histCountries.pdf")
+saveAndListPlot("histCountries.pdf")
 ax.set_yscale('log')
-plt.savefig("histCountries_log.pdf")
+saveAndListPlot("histCountries_log.pdf")
 plt.close()
 
 
@@ -80,7 +85,7 @@ applyUniformFont(ax,20)
 ax.set_xticklabels(dh.index, fontsize=10, rotation=45)
 plt.tick_params(axis='x', pad=1)
 plt.tick_params(axis='both', top=False,right=False)
-plt.savefig("countryABVs.pdf")
+saveAndListPlot("countryABVs.pdf")
 plt.close()
 
 
@@ -94,17 +99,6 @@ dDates = dDates[pd.notna(dDates['Number'])]
 dDates['x'] = [(x.date() - day0).days for x in dDates['Date']]
 dDates = dDates.query('x>-1200')
 # dDates['costheta'] = dDates['x'] * 2 / (dDates.x.max() - dDates.x.min())
-
-# fig, ax = plt.subplots(figsize=(16*.6,9*.6))
-# plt.tight_layout()
-# plt.margins(x=0)
-# plt.scatter(df.Date, df.Number, color='#f1bf4b', s=20)
-# plt.xlabel('Year')
-# plt.ylabel('Total beers')
-# ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
-# applyUniformFont(ax,24)
-# plt.savefig("growth.pdf")
-# plt.close()
 
 # fit a 2nd order Chebychev polynomial
 def cheby2(x, c0=0, c1=1, c2=0):
@@ -145,5 +139,7 @@ plotOrderedLegend([1,0])
 ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
 applyUniformFont(ax,24)
 plt.text(.05,.75, "\n".join(fit_info), transform=ax.transAxes, fontsize=18, ha='left', va='top')
-plt.savefig("growth.pdf")
+saveAndListPlot("growth.pdf")
 plt.close()
+
+plotList.close()
