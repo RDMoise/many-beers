@@ -59,9 +59,9 @@ applyUniformFont(ax,20)
 ax.set_xticklabels(dg.index, fontsize=10, rotation=45)
 plt.tick_params(axis='x', pad=1)
 plt.tick_params(axis='both', top=False,right=False)
-saveAndListPlot("histCountries.pdf")
+saveAndListPlot("histCountries.pdf", "Number of beers from each country")
 ax.set_yscale('log')
-saveAndListPlot("histCountries_log.pdf", "Number of beers from each country")
+saveAndListPlot("histCountries_log.pdf", "Number of beers from each country (log scale)")
 plt.close()
 
 
