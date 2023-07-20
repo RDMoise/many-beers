@@ -21,9 +21,9 @@ import matplotlib.dates as mdates
 df = pd.read_csv("1202beers.csv", delimiter=';', encoding='utf-8')
 plotList = open("plotList.md", "w")
 
-def saveAndListPlot(plotname, url='many-beers/blob/main/'):
+def saveAndListPlot(plotname, description='test', url='many-beers/blob/main/'):
     plt.savefig(f"{plotname}")
-    plotList.write(f"[{plotname}](https://nbviewer.org/github/RDMoise/{url}{plotname})\n")
+    plotList.write(f"[{description}](https://nbviewer.org/github/RDMoise/{url}{plotname})\n\n")
 
 ###############################################################################
 # histogram of ABVs
@@ -37,7 +37,7 @@ histplot(hABV, color='#f1bf4b', histtype="step")
 plt.xlabel('ABV [%]')
 plt.ylabel("Beers / 1%")
 applyUniformFont(ax,24)
-saveAndListPlot("histABV.pdf")
+saveAndListPlot("histABV.pdf", "Histogram of ABVs")
 plt.close()
 
 
@@ -61,7 +61,7 @@ plt.tick_params(axis='x', pad=1)
 plt.tick_params(axis='both', top=False,right=False)
 saveAndListPlot("histCountries.pdf")
 ax.set_yscale('log')
-saveAndListPlot("histCountries_log.pdf")
+saveAndListPlot("histCountries_log.pdf", "Number of beers from each country")
 plt.close()
 
 
@@ -80,12 +80,12 @@ plt.errorbar(.5*(bins[1:]+bins[:-1]), dh.MeanABV, dh.ErrorOnABV, False, ls='', m
 ax.set_xticks(.5*(bins[1:]+bins[:-1]))
 ax.minorticks_off()
 plt.xlabel('Country code')
-plt.ylabel("Average ABV / country")
+plt.ylabel("Mean ABV / country")
 applyUniformFont(ax,20)
 ax.set_xticklabels(dh.index, fontsize=10, rotation=45)
 plt.tick_params(axis='x', pad=1)
 plt.tick_params(axis='both', top=False,right=False)
-saveAndListPlot("countryABVs.pdf")
+saveAndListPlot("countryABVs.pdf", "Mean ABV per country")
 plt.close()
 
 
@@ -139,7 +139,7 @@ plotOrderedLegend([1,0])
 ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
 applyUniformFont(ax,24)
 plt.text(.05,.75, "\n".join(fit_info), transform=ax.transAxes, fontsize=18, ha='left', va='top')
-saveAndListPlot("growth.pdf")
+saveAndListPlot("growth.pdf", "Time evolution of the collection, with polynomial fit")
 plt.close()
 
 plotList.close()
