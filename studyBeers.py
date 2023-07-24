@@ -173,21 +173,22 @@ nAfter = len(listAfter)
 mus, vs = rollingMeanVariance(listAfter, mu0, v0*nBefore, nBefore)
 mus.insert(0,mu0)
 vs.insert(0,v0)
-len(mus), nAfter
-errs = []
+
+errs = [] # error on the mean
 for i in range(len(mus)):
-    errs.append(vs[i]**.5 / (i+nBefore))
+    errs.append((vs[i]/(i+nBefore))**.5)
 
 fig, ax = plt.subplots(figsize=(16*.6,9*.6))
 plt.tight_layout()
 plt.margins(x=0)
 plt.xlabel('Year')
-plt.ylabel('Average ABV')
+plt.ylabel('Mean ABV [%]')
 # plt.errorbar([dAfter.Date[0]] + list(dAfter.Date), mus, errs, color='#f1bf4b', ls='',marker='.', markersize=.5, elinewidth=1, capthick=1, capsize=.5, lw=.5) 
 ax.fill_between([dAfter.Date[0]] + list(dAfter.Date), np.array(mus)+errs, np.array(mus)-errs, color='#f1bf4b', lw=0)
-p1 = ax.plot([dAfter.Date[0]] + list(dAfter.Date), mus, color='#751D1D', lw=.25, ls='--', label='bla')
+p1 = ax.plot([dAfter.Date[0]] + list(dAfter.Date), mus, color='#751D1D', lw=2.5, label='bla')
+plt.text(np.max(dAfter.Date), mus[-1], f"$({mus[-1]:.2f}\pm{errs[-1]:.2f})\\%$", color='#751D1D', va='center', rotation=-90, fontsize=14)
 ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
-ax.set_ylim([5.5,6.1])
+# ax.set_ylim([5.5,6.1])
 # p2 = ax.fill(np.NaN, np.NaN, color='#f1bf4b', lw=0)
 # plt.legend([(p2[0],p1[0]),], ['Bla'])
 applyUniformFont(ax,24)
