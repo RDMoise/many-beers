@@ -8,3 +8,5 @@
 
 [Time evolution of the collection, with polynomial fit](https://nbviewer.org/github/RDMoise/many-beers/blob/main/growth.pdf)
 
+[Time evolution of mean ABV](https://nbviewer.org/github/RDMoise/many-beers/blob/main/growthABV.pdf)
+

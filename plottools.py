@@ -58,6 +58,25 @@ def saveplot(name):
     system(f"rm -f {name}_temp.pdf")
 
 
+class HandlerProxy(object):
+    def legend_artist(self, legend, orig_handle, fontsize, handlebox):
+        handlebox_width = handlebox.width
+        handlebox_height = handlebox.height
+        handlebox_x = handlebox.xdescent * 0.5
+        handlebox_y = handlebox.height * 0.5
+        handlebox_center = (handlebox_x + handlebox_width * 0.5, handlebox_y)
+
+        if isinstance(orig_handle, Patch):
+            handle = orig_handle.get_fc().copy()
+            handle.set_transform(handlebox.get_transform())
+            handlebox.add_artist(handle)
+            handlebox.add_artist(midpoint_line)
+            return handle
+        elif isinstance(orig_handle, Line2D):
+            orig_handle.set_color('blue')
+            return orig_handle
+
+
 def plotWithPulls(plotname, hists, styles, pulls, kwargs,
     xlabel, ylabel="A.U.", 
     kwargsPulls=[{'color': niceColour('onilred'), 'histtype': 'fill', 'alpha': 1}],
@@ -252,6 +271,21 @@ def hideEmptyBins(H, color='black', linestyle='', marker='.', markersize=10., el
             binlos[i] = binvals[i]
             binhis[i] = binvals[i]
     plt.errorbar(binning, binvals, yerr=(binvals-binlos, binhis-binvals), color=color, linestyle=linestyle, marker=marker, markersize=markersize, elinewidth=elinewidth, label=label)
+    return h
+
+
+def plotRectangles(H, ec=niceColour('onidgrey'), fc=niceColour('onilgrey'), lw=2.5, zorder=-99, binwnorm=None, density=False, label=None):
+    '''plot a histogram as coloured rectangles'''
+    h = histplot(H, yerr=True, density=density, binwnorm=binwnorm, histtype="errorbar", alpha=0)[0]
+    binning = [x for x in h.errorbar][0].get_xdata()
+    binvals = [x for x in h.errorbar][0].get_ydata()
+    binlos = [x for x in h.errorbar][1][0].get_ydata()
+    binhis = [x for x in h.errorbar][1][1].get_ydata()
+    nBins = len(H[0])
+    for i in range(nBins):
+        rectangle = plt.Rectangle((H[1][i], binlos[i]), H[1][i+1]-H[1][i], binhis[i]-binlos[i], lw=lw, fc=fc, ec=ec, zorder=zorder, label=label if not i else None)
+        plt.gca().add_patch(rectangle)
+        # plt.gca().add_patch(plt.Rectangle((H[1][i], binvals[i]), H[1][i+1]-H[1][i], 1., fc='black', ec='black'))
     return h
 
 

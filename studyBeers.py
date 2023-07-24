@@ -94,11 +94,12 @@ plt.close()
 ###############################################################################
 df['Date'] = pd.to_datetime(df['Date'], errors='coerce',format='%d/%m/%Y')
 day0 = np.mean(df.Date).date()
-dDates = df[pd.notna(df['Date'])][['Number','Date']]
+dDates = df[pd.notna(df['Date'])][['Number','Date','ABV']]
+dDates['usableDate'] = [(x.date() - dt.date(2018,1,1)).days for x in dDates['Date']]
+dDates = dDates.query('usableDate > 0')
 dDates = dDates[pd.notna(dDates['Number'])]
 dDates['x'] = [(x.date() - day0).days for x in dDates['Date']]
-dDates = dDates.query('x>-1200')
-# dDates['costheta'] = dDates['x'] * 2 / (dDates.x.max() - dDates.x.min())
+# dDates['costheta'] = dDates['x'] * 2 / (dDates.x.max() - dDates.x.min()) # should also scale y if we wanna please them mathematicians
 
 # fit a 2nd order Chebychev polynomial
 def cheby2(x, c0=0, c1=1, c2=0):
@@ -142,4 +143,59 @@ plt.text(.05,.75, "\n".join(fit_info), transform=ax.transAxes, fontsize=18, ha='
 saveAndListPlot("growth.pdf", "Time evolution of the collection, with polynomial fit")
 plt.close()
 
+
+###############################################################################
+# time evolution of mean ABV
+###############################################################################
+def rollingMeanVariance(l, mu=0, v=0, i0=0):
+    mus, vs = [], []
+    n = len(l)
+    for i in range(n):
+        delta = l[i] - mu
+        mu += delta / (i+1+i0)
+        mus.append(mu)
+        v += (l[i] - mu) * delta
+        vs.append(v / (i+1+i0))
+    return mus, vs
+
+dh = df[pd.notna(df['ABV'])][['Number','Date','ABV']]
+# start with the mean before dating
+mBefore = [pd.isna(x) or (x.date() - dt.date(2018,1,1)).days < 0 for x in dh['Date']]
+listBefore = np.sort(dh[mBefore]['ABV'])
+mus, vs = rollingMeanVariance(listBefore)
+mu0, v0 = mus[-1], vs[-1]
+nBefore = len(dh[mBefore])
+# Continue with the entries that have a usable date
+mAfter = [pd.notna(x) and (x.date() - dt.date(2018,1,1)).days > 0 for x in dh['Date']]
+dAfter = dh[mAfter].sort_values('Date').reset_index()
+listAfter = dAfter.ABV
+nAfter = len(listAfter)
+mus, vs = rollingMeanVariance(listAfter, mu0, v0*nBefore, nBefore)
+mus.insert(0,mu0)
+vs.insert(0,v0)
+len(mus), nAfter
+errs = []
+for i in range(len(mus)):
+    errs.append(vs[i]**.5 / (i+nBefore))
+
+fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+plt.tight_layout()
+plt.margins(x=0)
+plt.xlabel('Year')
+plt.ylabel('Average ABV')
+# plt.errorbar([dAfter.Date[0]] + list(dAfter.Date), mus, errs, color='#f1bf4b', ls='',marker='.', markersize=.5, elinewidth=1, capthick=1, capsize=.5, lw=.5) 
+ax.fill_between([dAfter.Date[0]] + list(dAfter.Date), np.array(mus)+errs, np.array(mus)-errs, color='#f1bf4b', lw=0)
+p1 = ax.plot([dAfter.Date[0]] + list(dAfter.Date), mus, color='#751D1D', lw=.25, ls='--', label='bla')
+ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
+ax.set_ylim([5.5,6.1])
+# p2 = ax.fill(np.NaN, np.NaN, color='#f1bf4b', lw=0)
+# plt.legend([(p2[0],p1[0]),], ['Bla'])
+applyUniformFont(ax,24)
+saveAndListPlot("growthABV.pdf", "Time evolution of mean ABV")
+plt.close()
+
+
+###############################################################################
+# bye
+###############################################################################
 plotList.close()
