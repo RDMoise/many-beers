@@ -17,6 +17,8 @@ import matplotlib
 from mplhep import histplot, style
 style.use(style.LHCb2)
 import matplotlib.dates as mdates
+import matplotlib.patheffects as pe
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 df = pd.read_csv("1202beers.csv", delimiter=';', encoding='utf-8')
 plotList = open("plotList.md", "w")
@@ -83,6 +85,7 @@ plt.xlabel('Country code')
 plt.ylabel("Mean ABV / country")
 applyUniformFont(ax,20)
 ax.set_xticklabels(dh.index, fontsize=10, rotation=45)
+ax.set_ylim([3,13])
 plt.tick_params(axis='x', pad=1)
 plt.tick_params(axis='both', top=False,right=False)
 saveAndListPlot("countryABVs.pdf", "Mean ABV per country")
@@ -92,6 +95,13 @@ plt.close()
 ###############################################################################
 # time evolution
 ###############################################################################
+dates = [dt.datetime(2018,3,27,0,0), dt.datetime(2019,9,26,0,0), dt.datetime(2020,12,8,0,0), dt.datetime(2021,6,27,0,0), dt.datetime(2022,1,27,0,0), dt.datetime(2025,1,1,0,0)]
+locations = ['CERN', 'London', 'RO', 'London', 'DENL']
+def plotLandmarkDates(y, zorder=-99):
+    for i in range(len(locations)):
+        plt.axvline(x=dates[i], c='#9C4431', ls='--', zorder=zorder) # F1DD59 # EED892
+        plt.text(dates[i]+dt.timedelta(days=15), y, locations[i], c='w', va='top', zorder=zorder, path_effects=[pe.Stroke(linewidth=.5, foreground='#9C4431')])
+
 df['Date'] = pd.to_datetime(df['Date'], errors='coerce',format='%d/%m/%Y')
 day0 = np.mean(df.Date).date()
 dDates = df[pd.notna(df['Date'])][['Number','Date','ABV']]
@@ -139,6 +149,7 @@ plt.scatter(dDates.Date, dDates.Number, color='#f1bf4b', s=10, label='Data')
 plotOrderedLegend([1,0])
 ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
 applyUniformFont(ax,24)
+plotLandmarkDates(1250)
 plt.text(.05,.75, "\n".join(fit_info), transform=ax.transAxes, fontsize=18, ha='left', va='top')
 saveAndListPlot("growth.pdf", "Time evolution of the collection, with polynomial fit")
 plt.close()
@@ -185,16 +196,53 @@ plt.xlabel('Year')
 plt.ylabel('Mean ABV [%]')
 # plt.errorbar([dAfter.Date[0]] + list(dAfter.Date), mus, errs, color='#f1bf4b', ls='',marker='.', markersize=.5, elinewidth=1, capthick=1, capsize=.5, lw=.5) 
 ax.fill_between([dAfter.Date[0]] + list(dAfter.Date), np.array(mus)+errs, np.array(mus)-errs, color='#f1bf4b', lw=0)
-p1 = ax.plot([dAfter.Date[0]] + list(dAfter.Date), mus, color='#751D1D', lw=2.5, label='bla')
-plt.text(np.max(dAfter.Date), mus[-1], f"$({mus[-1]:.2f}\pm{errs[-1]:.2f})\\%$", color='#751D1D', va='center', rotation=-90, fontsize=14)
+p1 = ax.plot([dAfter.Date[0]] + list(dAfter.Date), mus, color='#751d1d', lw=2.5, label='bla')
+plt.text(np.max(dAfter.Date), mus[-1], f"$({mus[-1]:.2f}\pm{errs[-1]:.2f})\\%$", color='#751d1d', va='center', rotation=-90, fontsize=14)
 ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
-# ax.set_ylim([5.5,6.1])
-# p2 = ax.fill(np.NaN, np.NaN, color='#f1bf4b', lw=0)
-# plt.legend([(p2[0],p1[0]),], ['Bla'])
+
+# Impact of country of residence
+plotLandmarkDates(6.15)
 applyUniformFont(ax,24)
 saveAndListPlot("growthABV.pdf", "Time evolution of mean ABV")
 plt.close()
 
+
+###############################################################################
+# Country - Location matrix
+###############################################################################
+mAfter = [pd.notna(x) and (x.date() - dt.date(2018,1,1)).days > 0 for x in df['Date']]
+d = df[mAfter]
+d['Timestamp'] = [x.timestamp() for x in d['Date']]
+timestamps = [x.timestamp() for x in dates]
+locations = ['CERN', 'London', 'RO', 'London', 'DENL']
+d['Location'] = pd.cut(d['Timestamp'], bins=timestamps, labels=locations, ordered=False)
+counts = d['Country'].value_counts()
+d = d[d['Country'].isin(counts.index)].sort_values(by='Country', key=lambda x: x.map(counts), ascending=False)
+
+xtab = pd.crosstab(d.Location, d.Country)
+# sort by most popular countries and chronological order of locations
+xtab = xtab[xtab.sum().sort_values(ascending=False).index].reindex(['CERN','London','RO','DENL'][::-1])
+fig, ax = plt.subplots(figsize=(20*.6,9*.6), layout='constrained')
+# plt.tight_layout()
+plt.margins(x=0)
+im = ax.imshow(xtab, aspect='auto', norm=LogNorm(), rasterized=True,
+              cmap=LinearSegmentedColormap.from_list("beer",colors=['#f1bf4b','#751d1d']))
+locations = xtab.index.tolist()
+countries = xtab.columns.tolist()
+
+# Set axis labels and tick positions
+plt.yticks(range(len(locations)), locations)
+applyUniformFont(ax,16)
+plt.xticks(range(len(countries)), countries, rotation=45, fontsize=10)
+plt.minorticks_off()
+plt.tick_params(axis='x', pad=1)
+plt.tick_params(axis='both', top=False, right=False, left=False)
+
+cbar = fig.colorbar(im, shrink=1., pad=.01)
+cbar.ax.tick_params(axis='both', pad=1)
+applyUniformFont(cbar.ax,16)
+saveAndListPlot("matrixCouLoc.pdf", "Matrix of beer origin vs. place of residence at the time")
+plt.close()
 
 ###############################################################################
 # bye

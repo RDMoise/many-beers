@@ -9,6 +9,7 @@ import matplotlib
 from mplhep import histplot, style
 style.use(style.LHCb2)
 from matplotlib.transforms import Bbox
+import matplotlib.patches as mpatches
 
 ROOTDIR = environ.get('ROOTDIR')
 TUPLEDIR = environ.get('TUPLEDIR')
@@ -26,6 +27,9 @@ def niceColour(colourname):
         "RKlpurple":    (151./255,151./255,252./255),
         "RKturquoise":  (143./255, 222./255, 234./255),
         "seqGreen":     ['#f7fcfd','#e5f5f9','#ccece6','#99d8c9','#66c2a4','#41ae76','#238b45','#006d2c','#00441b'][2:],
+        "seqBlue":      ['#fff7fb','#ece7f2','#d0d1e6','#a6bddb','#74a9cf','#3690c0','#0570b0','#045a8d','#023858'],
+        "seqPurple":    ['#fcfbfd','#efedf5','#dadaeb','#bcbddc','#9e9ac8','#807dba','#6a51a3','#54278f','#3f007d'],
+        "seqOrange":    ['#ffffe5','#fff7bc','#fee391','#fec44f','#fe9929','#ec7014','#cc4c02','#993404','#662506'],
         "cbrDark2_3":   ['#1b9e77','#d95f02','#7570b3'], # green orange purple
         "qualSet2":     ['#66c2a5','#fc8d62','#8da0cb','#a6d854','#e5c494','#b3b3b3'],
         "myrtle":       '#32746d', # greenish
@@ -46,6 +50,8 @@ def niceColour(colourname):
         "LHCblblue":    '#d2eefa',
         "dgreenblue":   '#2e8f9e',
         "alexagreen":   '#348a82',
+        "beeryellow":   '#f1bf4b',
+        "beerbrown":    '#751d1d',
         # "qualSet2":     ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854','#ffd92f','#e5c494','#b3b3b3'],
     }
     return colours[colourname]
@@ -75,6 +81,7 @@ class HandlerProxy(object):
         elif isinstance(orig_handle, Line2D):
             orig_handle.set_color('blue')
             return orig_handle
+# plt.legend([fill_proxy], ['Filled Area with Midpoint Line'], handler_map={Patch: HandlerProxy()})
 
 
 def plotWithPulls(plotname, hists, styles, pulls, kwargs,
@@ -238,8 +245,8 @@ def applyUniformFont(ax, fontsize):
         item.set_fontsize(fontsize)
 
 
-def plotOrderedLegend(order, fontsize=20, loc='best', title=None, titlesize=20):
-    handles, labels = plt.gca().get_legend_handles_labels()
+def plotOrderedLegend(order=None, handles=None, labels=None, fontsize=20, loc='best', title=None, titlesize=20):
+    if handles== None or labels== None: handles, labels = plt.gca().get_legend_handles_labels()
     leg = plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order], fontsize=fontsize, loc=loc, title=title)
     leg.get_title().set_fontsize(titlesize)
     return leg
@@ -259,7 +266,7 @@ def getSubplotExtent(ax, hpad=0, vpad=0):
 
 
 # def hideEmptyBins(H, kwargs={'color': 'black', 'linestyle': '', 'marker': '.', 'markersize': 10., 'elinewidth': 1}):
-def hideEmptyBins(H, color='black', linestyle='', marker='.', markersize=10., elinewidth=1, label=None, binwnorm=None, density=False):
+def hideEmptyBins(H, color='black', linestyle='', marker='.', markersize=10., capsize=2.5, elinewidth=1, label=None, binwnorm=None, density=False):
     '''hide the error bars of bins with 0 entries'''
     h = histplot(H, yerr=True, density=density, histtype="errorbar", alpha=0, binwnorm=binwnorm)[0]
     binning = [x for x in h.errorbar][0].get_xdata()
@@ -270,7 +277,7 @@ def hideEmptyBins(H, color='black', linestyle='', marker='.', markersize=10., el
         if binvals[i] <= 0:
             binlos[i] = binvals[i]
             binhis[i] = binvals[i]
-    plt.errorbar(binning, binvals, yerr=(binvals-binlos, binhis-binvals), color=color, linestyle=linestyle, marker=marker, markersize=markersize, elinewidth=elinewidth, label=label)
+    plt.errorbar(binning, binvals, yerr=(binvals-binlos, binhis-binvals), color=color, linestyle=linestyle, marker=marker, markersize=markersize, capsize=capsize, elinewidth=elinewidth, label=label)
     return h
 
 
@@ -287,6 +294,15 @@ def plotRectangles(H, ec=niceColour('onidgrey'), fc=niceColour('onilgrey'), lw=2
         plt.gca().add_patch(rectangle)
         # plt.gca().add_patch(plt.Rectangle((H[1][i], binvals[i]), H[1][i+1]-H[1][i], 1., fc='black', ec='black'))
     return h
+
+def plotBorderedHist(h, handles=[], labels=[], color=niceColour('oniblue'), alpha=.3, label=None, kwargs={}, binwnorm=None, density=False):
+    histplot(h, color=color, **kwargs, density=density, binwnorm=binwnorm, histtype="fill", alpha=alpha, label=label)  
+    histplot(h, color=color, **kwargs, density=density, binwnorm=binwnorm, histtype="step") 
+    pFill = mpatches.Patch(fc=color, **kwargs, alpha=alpha, label=label)
+    pStep = mpatches.Patch(ec=color, **kwargs, color='none')
+    handles.append((pStep, pFill))
+    labels.append(label)
+    return handles, labels
 
 
 def getRatioBinning(binvar, binchoice='', logscale=True):

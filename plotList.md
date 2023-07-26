@@ -10,3 +10,5 @@
 
 [Time evolution of mean ABV](https://nbviewer.org/github/RDMoise/many-beers/blob/main/growthABV.pdf)
 
+[Matrix of beer origin vs. place of residence at the time](https://nbviewer.org/github/RDMoise/many-beers/blob/main/matrixCouLoc.pdf)
+
