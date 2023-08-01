@@ -19,6 +19,7 @@ style.use(style.LHCb2)
 import matplotlib.dates as mdates
 import matplotlib.patheffects as pe
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib.ticker import *
 
 df = pd.read_csv("1202beers.csv", delimiter=';', encoding='utf-8')
 plotList = open("plotList.md", "w")
@@ -242,6 +243,23 @@ cbar = fig.colorbar(im, shrink=1., pad=.01)
 cbar.ax.tick_params(axis='both', pad=1)
 applyUniformFont(cbar.ax,16)
 saveAndListPlot("matrixCouLoc.pdf", "Matrix of beer origin vs. place of residence at the time")
+plt.close()
+
+###############################################################################
+# Days between milestones (beer number x00)
+###############################################################################
+d100 = df[df.Number%100==0].sort_values(by='Number').reset_index(drop=True)
+fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+plt.tight_layout()
+plt.margins(x=50/(max(d100.Number)-min(d100.Number)+100))
+plt.xlabel('Milestone')
+plt.ylabel('Days from previous milestone')
+plt.scatter(np.arange(min(d100.Number)+100, max(d100.Number)+1, 100), [x.days for x in d100['Date'].diff()][1:], color=niceColour('beeryellow'))
+ax.xaxis.set_major_locator(MultipleLocator(100))
+ax.xaxis.set_minor_locator(NullLocator())
+ax.set_ylim([0,300])
+applyUniformFont(ax, 24)
+saveAndListPlot("milestoneDelta.pdf", "Time between every hundreth beer")
 plt.close()
 
 ###############################################################################

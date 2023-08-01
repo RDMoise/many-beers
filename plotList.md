@@ -12,3 +12,5 @@
 
 [Matrix of beer origin vs. place of residence at the time](https://nbviewer.org/github/RDMoise/many-beers/blob/main/matrixCouLoc.pdf)
 
+[Time between every hundreth beer](https://nbviewer.org/github/RDMoise/many-beers/blob/main/milestoneDelta.pdf)
+

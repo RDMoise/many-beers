@@ -64,24 +64,31 @@ def saveplot(name):
     system(f"rm -f {name}_temp.pdf")
 
 
-class HandlerProxy(object):
-    def legend_artist(self, legend, orig_handle, fontsize, handlebox):
-        handlebox_width = handlebox.width
-        handlebox_height = handlebox.height
-        handlebox_x = handlebox.xdescent * 0.5
-        handlebox_y = handlebox.height * 0.5
-        handlebox_center = (handlebox_x + handlebox_width * 0.5, handlebox_y)
+class PlotOptions:
+    def __init__(self, name, variable, binning, xlabel='', ylabel='', logx=False, logy=False, legendloc='best', figsize=(16*.66, 9*.66)):
+        self.name = name
+        self.variable = variable
+        self.binning = binning
+        self.binw = (binning[-1] - binning[0]) / (len(binning) - 1)
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+        self.logx = logx
+        self.logy = logy
+        self.legendloc = legendloc
+        self.figsize = figsize
 
-        if isinstance(orig_handle, Patch):
-            handle = orig_handle.get_fc().copy()
-            handle.set_transform(handlebox.get_transform())
-            handlebox.add_artist(handle)
-            handlebox.add_artist(midpoint_line)
-            return handle
-        elif isinstance(orig_handle, Line2D):
-            orig_handle.set_color('blue')
-            return orig_handle
-# plt.legend([fill_proxy], ['Filled Area with Midpoint Line'], handler_map={Patch: HandlerProxy()})
+    def initPlot(self):
+        fig, ax = plt.subplots(figsize=self.figsize)
+        plt.tight_layout()
+        plt.margins(x=0)
+        plt.xlabel(self.xlabel)
+        plt.ylabel(self.ylabel)
+        if self.logx: ax.set_xscale('log')
+        if self.logy: ax.set_yscale('log')
+        return fig, ax
+
+    def ylabel_density(self): return rf"$1/N$ d$N/$d{self.xlabel}"
+    def ylabel_candidates(self, unit=''): return f"Candidates / {self.binw}{unit}"
 
 
 def plotWithPulls(plotname, hists, styles, pulls, kwargs,
