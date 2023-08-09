@@ -77,12 +77,13 @@ class PlotOptions:
         self.legendloc = legendloc
         self.figsize = figsize
 
-    def initPlot(self):
+    def initPlot(self, density=False):
         fig, ax = plt.subplots(figsize=self.figsize)
         plt.tight_layout()
         plt.margins(x=0)
         plt.xlabel(self.xlabel)
-        plt.ylabel(self.ylabel)
+        if density: plt.ylabel(self.ylabel_density())
+        else: plt.ylabel(self.ylabel)
         if self.logx: ax.set_xscale('log')
         if self.logy: ax.set_yscale('log')
         return fig, ax

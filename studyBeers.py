@@ -21,7 +21,8 @@ import matplotlib.patheffects as pe
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib.ticker import *
 
-df = pd.read_csv("1202beers.csv", delimiter=';', encoding='utf-8')
+# df = pd.read_csv("1202beers.csv", delimiter=';', encoding='utf-8')
+df = pd.read_csv("1230beers.csv", delimiter=',', encoding='utf-8')
 plotList = open("plotList.md", "w")
 
 def saveAndListPlot(plotname, description='test', url='many-beers/blob/main/'):
@@ -200,6 +201,7 @@ ax.fill_between([dAfter.Date[0]] + list(dAfter.Date), np.array(mus)+errs, np.arr
 p1 = ax.plot([dAfter.Date[0]] + list(dAfter.Date), mus, color='#751d1d', lw=2.5, label='bla')
 plt.text(np.max(dAfter.Date), mus[-1], f"$({mus[-1]:.2f}\pm{errs[-1]:.2f})\\%$", color='#751d1d', va='center', rotation=-90, fontsize=14)
 ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
+ax.set_ylim([5.4, 6.2])
 
 # Impact of country of residence
 plotLandmarkDates(6.15)
