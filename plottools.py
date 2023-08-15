@@ -48,6 +48,7 @@ def niceColour(colourname):
         "onilpurple":   '#666da3',
         "LHCbdblue":    '#0057a7',
         "LHCblblue":    '#d2eefa',
+        "LHCbred":      '#de2f29',
         "dgreenblue":   '#2e8f9e',
         "alexagreen":   '#348a82',
         "beeryellow":   '#f1bf4b',

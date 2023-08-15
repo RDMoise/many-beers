@@ -264,6 +264,45 @@ applyUniformFont(ax, 24)
 saveAndListPlot("milestoneDelta.pdf", "Time between every hundreth beer")
 plt.close()
 
+
+###############################################################################
+# How many beers were drunk in a given day
+###############################################################################
+dGrp = df.groupby('Date')
+bdrunk = dGrp.size()
+hdrunk = bdrunk.value_counts()
+errs = np.sqrt(hdrunk.values)
+binningFine = np.linspace(.5, max(hdrunk.index)+.5, 100*max(hdrunk.index)+1)
+
+# fit an exponential or a power-law
+# def expo(x, N=1, l=0): return N*np.exp(-l*(x-1))
+def pwr(x, N=1, n=0): return N*x**(-n)
+
+minimiser = Minuit(LeastSquares(hdrunk.index, hdrunk.values, errs, 
+                                # expo), N=hdrunk[0][0], l=1)
+                                pwr), N=hdrunk.values[0], n=1)
+result = minimiser.migrad()
+param_hesse = result.hesse()
+param_errors = result.errors
+print(result)
+
+fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+plt.tight_layout()
+plt.margins(x=0)
+ax.set_xlabel("Beers drunk in a day")
+ax.set_ylabel("Number of occurrences")
+plt.plot(binningFine, pwr(binningFine, *minimiser.values), c=niceColour("beerbrown"), 
+         label="Best fit power law\n"f"${{\\rm Exponent}}=-{minimiser.values['n']:.2f}\pm{minimiser.errors['n']:.2f}$")
+plt.errorbar(hdrunk.index, hdrunk.values, errs, c=niceColour("beeryellow"), ls='', marker='.', markersize=10., capsize=2.5, elinewidth=1, label='Data')
+ax.set_xticks(np.linspace(1, max(hdrunk.index), max(hdrunk.index)))
+
+plotOrderedLegend([1,0], loc=1)
+
+ax.set_yscale('log')
+applyUniformFont(ax,24)
+saveAndListPlot("beerMultiplicity.pdf", "Histogram of beers drunk on the same date")
+plt.close()
+
 ###############################################################################
 # bye
 ###############################################################################

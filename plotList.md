@@ -14,3 +14,5 @@
 
 [Time between every hundreth beer](https://nbviewer.org/github/RDMoise/many-beers/blob/main/milestoneDelta.pdf)
 
+[Histogram of beers drunk on the same date](https://nbviewer.org/github/RDMoise/many-beers/blob/main/beerMultiplicity.pdf)
+
