@@ -139,7 +139,9 @@ fit_info = [
 ]
 for p, v, e in zip(minimiser.parameters, minimiser.values, minimiser.errors):
     if not minimiser.fixed[p]:
-        fit_info.append(f"{p} = ${v:1.1e} \\pm {e:1.1e}$")
+        fit_info.append(roundedLatex(p, v, e, scientific=bool(v < .01)))
+        # pdgrounded = pdgRound(v, e)
+        # fit_info.append(f"{p} = ${pdgrounded[0]:1.1e} \\pm {e:1.1e}$")
 
 fig, ax = plt.subplots(figsize=(16*.6,9*.6))
 plt.tight_layout()
