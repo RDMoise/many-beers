@@ -95,39 +95,41 @@ class PlotOptions:
 
 class pdgRound:
     '''Given a value and an error, round and format them according to the PDG rules for significant digits
-       Source: https://github.com/gerbaudo/python-scripts/blob/master/various/pdgRounding.py'''
+       Adapted from: https://github.com/gerbaudo/python-scripts/blob/master/various/pdgRounding.py'''
     def __init__(self, value, error):
         self.value = value
         self.error = error
-    # def threeDigits(self):
+
         '''extract the three most significant digits and return them as an int'''
         self.threeDigits = int(("%.2e"%float(self.error)).split('e')[0].replace('.','').replace('+','').replace('-',''))
-    # def nSignificantDigits(self):
-        assert self.threeDigits<1000,"three digits (%d) cannot be larger than 10^3"%self.threeDigits
+        assert self.threeDigits<1000, f"three digits {self.threeDigits} cannot be larger than 10^3"
+
         if self.threeDigits<101: self.nSignificantDigits = 2 # not sure
         elif self.threeDigits<356: self.nSignificantDigits = 2
         elif self.threeDigits<950: self.nSignificantDigits = 1
         else: self.nSignificantDigits = 2
-        self.extraRound = 1 if self.threeDigits>=950 else 0
+
+        self.extraRound = 1 if self.threeDigits>=950 else 0 # special rounding for this case
+
     def frexp10(self, number):
         '''convert to mantissa+exp representation (same as frex, but in base 10)'''
         numberStr = ("%e"%float(number)).split('e')
         return float(numberStr[0]), int(numberStr[1])
-    # def nDigitsValue(self, expVal, expErr, nDigitsErr):
-    #     '''compute the number of digits we want for the value, assuming we keep nDigitsErr for the error'''
-    #     return expVal-expErr+nDigitsErr
-    def formatNumber(self, number, nDigits, extraRound=0):
-        '''Format the value; extraRound is meant for the special case of threeDigits>950'''
+
+    def formatNumber(self, number, nDigits):
+        '''Returns formatted string of the rounded number'''
         exponent = self.frexp10(number)[1]
-        roundAt = nDigits-1-exponent - extraRound
+        roundAt = nDigits-1-exponent - self.extraRound
         nDec = roundAt if exponent<nDigits else 0
         nDec = max([nDec, 0])
         return ('%.'+str(nDec)+'f')%round(number,roundAt)
+
     def print(self, scientific=False):
         expVal, expErr = self.frexp10(self.value)[1], self.frexp10(self.error)[1]
-        norm = expVal if scientific else 0.
-        return (self.formatNumber(self.value * 10**(-norm), self.nSignificantDigits + expVal - expErr, self.extraRound),
-                self.formatNumber(self.error * 10**(-norm), self.nSignificantDigits, self.extraRound), norm)
+        norm = expVal if scientific else 0. # bring digits to the front if printing in \times10^{} format
+        return (self.formatNumber(self.value * 10**(-norm), self.nSignificantDigits + expVal - expErr),
+                self.formatNumber(self.error * 10**(-norm), self.nSignificantDigits), 
+                norm)
 
 
 def roundedLatex(name, value, error, scientific=False):
