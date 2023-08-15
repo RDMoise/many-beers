@@ -292,7 +292,8 @@ plt.margins(x=0)
 ax.set_xlabel("Beers drunk in a day")
 ax.set_ylabel("Number of occurrences")
 plt.plot(binningFine, pwr(binningFine, *minimiser.values), c=niceColour("beerbrown"), 
-         label="Best fit power law\n"f"${{\\rm Exponent}}=-{minimiser.values['n']:.2f}\pm{minimiser.errors['n']:.2f}$")
+         label="Best fit power law\n"+roundedLatex('Exponent', -minimiser.values['n'], minimiser.errors['n']))
+         # f"${{\\rm Exponent}}=-{minimiser.values['n']:.2f}\pm{minimiser.errors['n']:.2f}$")
 plt.errorbar(hdrunk.index, hdrunk.values, errs, c=niceColour("beeryellow"), ls='', marker='.', markersize=10., capsize=2.5, elinewidth=1, label='Data')
 ax.set_xticks(np.linspace(1, max(hdrunk.index), max(hdrunk.index)))
 
