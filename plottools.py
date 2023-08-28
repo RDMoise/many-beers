@@ -10,6 +10,7 @@ from mplhep import histplot, style
 style.use(style.LHCb2)
 from matplotlib.transforms import Bbox
 import matplotlib.patches as mpatches
+from matplotlib.colors import LinearSegmentedColormap
 
 ROOTDIR = environ.get('ROOTDIR')
 TUPLEDIR = environ.get('TUPLEDIR')
@@ -58,6 +59,14 @@ def niceColour(colourname):
     return colours[colourname]
 
 
+def registerCustomCmaps():
+    plt.cm.register_cmap(name="HeBkg", cmap=LinearSegmentedColormap.from_list("custom", colors=[niceColour('oniblue'), niceColour('RKorange')]))
+    plt.cm.register_cmap(name="beer", cmap=LinearSegmentedColormap.from_list("custom", colors=[niceColour('beeryellow'), niceColour('beerbrown')]))
+    plt.cm.register_cmap(name="TLoutreach", cmap=LinearSegmentedColormap.from_list("TLoutreach", colors=['#3333C4', '#825F76', '#E48534', '#E48534'])) # '#5CC9CA', 
+    plt.cm.register_cmap(name="bleachmelon", cmap=LinearSegmentedColormap.from_list("bleachmelon", colors=['#F08A82', '#208A82']))
+    plt.cm.register_cmap(name="joker", cmap=LinearSegmentedColormap.from_list("joker", colors=[niceColour('RKdpurple'), niceColour('cbrDark2_3')]))
+
+
 def saveplot(name):
     '''save matplotlib figure and prepress it (lossless compression, font embed)'''
     plt.savefig(f"{name}_temp.pdf")
@@ -90,7 +99,7 @@ class PlotOptions:
         return fig, ax
 
     def ylabel_density(self): return rf"$1/N$ d$N/$d{self.xlabel}"
-    def ylabel_candidates(self, unit=''): return f"Candidates / {self.binw}{unit}"
+    def ylabel_candidates(self, unit=''): return f"Candidates per {self.binw} {unit}"
 
 
 class pdgRound:
@@ -238,13 +247,13 @@ def plotNormalisedSlicesLog(dataX, dataY, binsX, binsY, xlabel=None, ylabel=None
     h = np.array([x/sum(x) for x in h0.values()]) # normalise X slices to unity
     h[np.isnan(h)] = 0
 
-    fig, ax = plt.subplots(figsize=figsize, layout='constrained')
-    plt.margins(x=0)
+    fig, ax = plt.subplots(figsize=figsize)#, layout='constrained')
     ax.set_xlim([binsX[0], binsX[-1]])
     ax.set_ylim([binsY[0], binsY[-1]])
     im = ax.pcolormesh(*h0.axes.edges.T, h.T, cmap="cividis", norm=LogNorm(), rasterized=True)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    plt.margins(x=0)
 
     cumulative_sum = [np.cumsum(x) for x in h]
     split_index = [np.argmax(s >= np.sum(x)/2) for x,s in zip(h,cumulative_sum)]

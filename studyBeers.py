@@ -22,7 +22,8 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib.ticker import *
 
 # df = pd.read_csv("1202beers.csv", delimiter=';', encoding='utf-8')
-df = pd.read_csv("1230beers.csv", delimiter=',', encoding='utf-8')
+# df = pd.read_csv("1230beers.csv", delimiter=',', encoding='utf-8')
+df = pd.read_csv("1247beers.csv", delimiter=';', encoding='utf-8')
 plotList = open("plotList.md", "w")
 
 def saveAndListPlot(plotname, description='test', url='many-beers/blob/main/'):
