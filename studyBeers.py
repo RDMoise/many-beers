@@ -35,7 +35,7 @@ def saveAndListPlot(plotname, description='test', url='many-beers/blob/main/'):
 ###############################################################################
 # histogram of ABVs
 ###############################################################################
-hABV = np.histogram(df.ABV, np.linspace(0,17,18))
+hABV = np.histogram(df.ABV, np.linspace(-.5,18.5,20))
 fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=0)
@@ -53,12 +53,13 @@ plt.close()
 ###############################################################################
 dg = df.Country.value_counts()
 bins = np.linspace(0,len(dg),len(dg)+1)
+binc = .5*(bins[1:]+bins[:-1])
 fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=0)
 histplot(dg, bins, color='#f1bf4b', histtype="fill", alpha=.5)
 histplot(dg, bins, color='#f1bf4b', histtype="step")
-ax.set_xticks(.5*(bins[1:]+bins[:-1]))
+ax.set_xticks(binc)
 ax.minorticks_off()
 plt.xlabel('Country code')
 plt.ylabel("Beers / country")
@@ -78,13 +79,14 @@ plt.close()
 dGrp = df.groupby("Country")
 means = dGrp.ABV.mean()
 eoms = dGrp.ABV.std() / dGrp.ABV.count()
+eoms[np.isnan(eoms)]=0
 dh = pd.concat([means,eoms], keys=['MeanABV','ErrorOnABV'], axis=1)
 dh = dh.sort_values('MeanABV',ascending=False)
 fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=0.01)
-plt.errorbar(.5*(bins[1:]+bins[:-1]), dh.MeanABV, dh.ErrorOnABV, False, ls='', marker='.', markersize=7.5, elinewidth=1, capthick=1, capsize=2.5, color='#f1bf4b')
-ax.set_xticks(.5*(bins[1:]+bins[:-1]))
+plt.errorbar(binc, dh.MeanABV, dh.ErrorOnABV, False, ls='', marker='.', markersize=7.5, elinewidth=1, capthick=1, capsize=2.5, color='#f1bf4b', label='Data')
+ax.set_xticks(binc)
 ax.minorticks_off()
 plt.xlabel('Country code')
 plt.ylabel("Mean ABV / country")
@@ -93,6 +95,25 @@ ax.set_xticklabels(dh.index, fontsize=10, rotation=45)
 ax.set_ylim([3,13])
 plt.tick_params(axis='x', pad=1)
 plt.tick_params(axis='both', top=False,right=False)
+
+binningFine = np.linspace(bins[0], bins[-1], 10001)
+
+# fit an exponential or a power-law
+# def expo(x, N=1, l=0): return N*np.exp(-l*(x-1))
+# def pwr(x, N=1, n=0): return N*x**(-n)
+# minimiser = Minuit(LeastSquares(binc[dh.ErrorOnABV>0], dh[dh.ErrorOnABV>0].MeanABV, dh[dh.ErrorOnABV>0].ErrorOnABV, 
+#                                 # expo), N=means[0], l=1)
+#                                 pwr), N=means[0], n=-1e-8)
+# result = minimiser.migrad()
+# param_hesse = result.hesse()
+# param_errors = result.errors
+# print(result)
+
+# plt.plot(binningFine, expo(binningFine, *minimiser.values), c=niceColour("beerbrown"), 
+#          label="Best fit power law\n"+roundedLatex('Exponent', -minimiser.values['n'], minimiser.errors['n']))
+#          # label=f"${{\\rm Exponent}}=-{minimiser.values['l']:.2f}\pm{minimiser.errors['l']:.2f}$")
+# plotOrderedLegend([1,0], loc=1)
+
 saveAndListPlot("countryABVs.pdf", "Mean ABV per country")
 plt.close()
 
@@ -119,14 +140,18 @@ dDates['x'] = [(x.date() - day0).days for x in dDates['Date']]
 # fit a 2nd order Chebychev polynomial
 def cheby2(x, c0=0, c1=1, c2=0):
     return c0 + c1 * x + c2 * (2*x*x - 1)
-# fit a 4thd order Chebychev polynomial
+# fit a 4th order Chebychev polynomial
 def cheby4(x, c0=0, c1=1, c2=0, c3=0, c4=0):
     return cheby2(x,c0,c1,c2) + \
     c3 * (4*x*x*x - 3*x) + \
     c4 * (8*x*x*x*x - 8*x*x - 1)
+# fit a short-scale and a long-scale wave
+# def coscos(x, A=0, T=0):#, B=0, t=0):
+#     return A*np.cos(x/T)# + B*np.cos(x/t)
 
-minimiser = Minuit(LeastSquares(np.array(dDates.x), np.array(dDates.Number), np.ones_like(dDates.Number), cheby4), 
-    c0 = 600, c1 = .5, c2 = 1e-5, c3 = 1e-5, c4 = 1e-5,)
+minimiser = Minuit(LeastSquares(np.array(dDates.x), np.array(dDates.Number), np.ones_like(dDates.Number), 
+    cheby4), c0 = 600, c1 = .5, c2 = 1e-5, c3 = 1e-5, c4 = 1e-5,)
+    # coscos), A=500, T=5)
 result = minimiser.migrad()
 param_hesse = result.hesse()
 param_errors = result.errors
@@ -337,23 +362,25 @@ plt.close()
 ###############################################################################
 dGrp = df.groupby('Vol')
 dg = df.Vol.value_counts()
-bins = np.linspace(0,len(dg),len(dg)+1)
 means = dGrp.ABV.mean()
 eoms = dGrp.ABV.std() / dGrp.ABV.count()
+# get rid of some of the outliers
+means, eoms = means[2:], eoms[2:]
+bins = np.linspace(0,len(means),len(means)+1)
 fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=0.01)
-plt.axhline(muABV, lw=2.5, c=niceColour('beerbrown'))
-plt.axhline(muABV-errABV, lw=1.5, c=niceColour('beerbrown'), ls='--')
-plt.axhline(muABV+errABV, lw=1.5, c=niceColour('beerbrown'), ls='--')
-plt.errorbar(.5*(bins[1:]+bins[:-1]), means, eoms, False, ls='', marker='.', markersize=10, elinewidth=0, capthick=1, capsize=2.5, color='#f1bf4b')
+plt.axhline(muABV, lw=1, c=niceColour('beerbrown'))
+plt.axhline(muABV-errABV, lw=1, c=niceColour('beerbrown'), ls='--')
+plt.axhline(muABV+errABV, lw=1, c=niceColour('beerbrown'), ls='--')
+plt.errorbar(.5*(bins[1:]+bins[:-1]), means, eoms, False, ls='', marker='.', markersize=10, elinewidth=1, capthick=1, capsize=0, color='#f1bf4b')
 ax.set_xticks(.5*(bins[1:]+bins[:-1]))
 ax.minorticks_off()
 plt.xlabel('Volume [mL]')
 plt.ylabel("Mean ABV")
 applyUniformFont(ax,20)
 ax.set_xticklabels(means.index, rotation=45)
-ax.set_ylim([3.75,10.25])
+ax.set_ylim([4,8])
 plt.tick_params(axis='x', pad=1)
 plt.tick_params(axis='both', top=False,right=False)
 saveAndListPlot("volumeABVs.pdf", "Mean ABV per bottle/can size")
