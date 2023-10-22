@@ -20,10 +20,12 @@ import matplotlib.dates as mdates
 import matplotlib.patheffects as pe
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib.ticker import *
+matplotlib.colormaps.register(name="beer", cmap=LinearSegmentedColormap.from_list("beer", colors=[niceColour('beeryellow'), niceColour('beerbrown')]))
 
 # df = pd.read_csv("1202beers.csv", delimiter=';', encoding='utf-8')
 # df = pd.read_csv("1230beers.csv", delimiter=',', encoding='utf-8')
-df = pd.read_csv("1247beers.csv", delimiter=';', encoding='utf-8')
+# df = pd.read_csv("1247beers.csv", delimiter=';', encoding='utf-8')
+df = pd.read_csv("1298beers.csv", delimiter=';', encoding='utf-8')
 plotList = open("plotList.md", "w")
 
 def saveAndListPlot(plotname, description='test', url='many-beers/blob/main/'):
@@ -34,7 +36,7 @@ def saveAndListPlot(plotname, description='test', url='many-beers/blob/main/'):
 # histogram of ABVs
 ###############################################################################
 hABV = np.histogram(df.ABV, np.linspace(0,17,18))
-fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=0)
 histplot(hABV, color='#f1bf4b', histtype="fill", alpha=.5)
@@ -51,7 +53,7 @@ plt.close()
 ###############################################################################
 dg = df.Country.value_counts()
 bins = np.linspace(0,len(dg),len(dg)+1)
-fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=0)
 histplot(dg, bins, color='#f1bf4b', histtype="fill", alpha=.5)
@@ -78,7 +80,7 @@ means = dGrp.ABV.mean()
 eoms = dGrp.ABV.std() / dGrp.ABV.count()
 dh = pd.concat([means,eoms], keys=['MeanABV','ErrorOnABV'], axis=1)
 dh = dh.sort_values('MeanABV',ascending=False)
-fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=0.01)
 plt.errorbar(.5*(bins[1:]+bins[:-1]), dh.MeanABV, dh.ErrorOnABV, False, ls='', marker='.', markersize=7.5, elinewidth=1, capthick=1, capsize=2.5, color='#f1bf4b')
@@ -124,12 +126,7 @@ def cheby4(x, c0=0, c1=1, c2=0, c3=0, c4=0):
     c4 * (8*x*x*x*x - 8*x*x - 1)
 
 minimiser = Minuit(LeastSquares(np.array(dDates.x), np.array(dDates.Number), np.ones_like(dDates.Number), cheby4), 
-    c0 = 600, 
-    c1 = .5,
-    c2 = 1e-5,
-    c3 = 1e-5,
-    c4 = 1e-5,
-    )
+    c0 = 600, c1 = .5, c2 = 1e-5, c3 = 1e-5, c4 = 1e-5,)
 result = minimiser.migrad()
 param_hesse = result.hesse()
 param_errors = result.errors
@@ -144,7 +141,7 @@ for p, v, e in zip(minimiser.parameters, minimiser.values, minimiser.errors):
         # pdgrounded = pdgRound(v, e)
         # fit_info.append(f"{p} = ${pdgrounded[0]:1.1e} \\pm {e:1.1e}$")
 
-fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=0)
 plt.xlabel('Year')
@@ -194,7 +191,7 @@ errs = [] # error on the mean
 for i in range(len(mus)):
     errs.append((vs[i]/(i+nBefore))**.5)
 
-fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=0)
 plt.xlabel('Year')
@@ -202,7 +199,8 @@ plt.ylabel('Mean ABV [%]')
 # plt.errorbar([dAfter.Date[0]] + list(dAfter.Date), mus, errs, color='#f1bf4b', ls='',marker='.', markersize=.5, elinewidth=1, capthick=1, capsize=.5, lw=.5) 
 ax.fill_between([dAfter.Date[0]] + list(dAfter.Date), np.array(mus)+errs, np.array(mus)-errs, color='#f1bf4b', lw=0)
 p1 = ax.plot([dAfter.Date[0]] + list(dAfter.Date), mus, color='#751d1d', lw=2.5, label='bla')
-plt.text(np.max(dAfter.Date), mus[-1], f"$({mus[-1]:.2f}\pm{errs[-1]:.2f})\\%$", color='#751d1d', va='center', rotation=-90, fontsize=14)
+muABV, errABV = mus[-1], errs[-1]
+plt.text(np.max(dAfter.Date), mus[-1], f"$({muABV:.2f}\pm{errABV:.2f})\\%$", color='#751d1d', va='center', rotation=-90, fontsize=14)
 ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
 ax.set_ylim([5.4, 6.2])
 
@@ -228,11 +226,10 @@ d = d[d['Country'].isin(counts.index)].sort_values(by='Country', key=lambda x: x
 xtab = pd.crosstab(d.Location, d.Country)
 # sort by most popular countries and chronological order of locations
 xtab = xtab[xtab.sum().sort_values(ascending=False).index].reindex(['CERN','London','RO','DENL'][::-1])
-fig, ax = plt.subplots(figsize=(20*.6,9*.6), layout='constrained')
+fig, ax = plt.subplots(figsize=(20*.66,9*.66), layout='constrained')
 # plt.tight_layout()
 plt.margins(x=0)
-im = ax.imshow(xtab, aspect='auto', norm=LogNorm(), rasterized=True,
-              cmap=LinearSegmentedColormap.from_list("beer",colors=['#f1bf4b','#751d1d']))
+im = ax.imshow(xtab, aspect='auto', norm=LogNorm(), rasterized=True, cmap='beer')
 locations = xtab.index.tolist()
 countries = xtab.columns.tolist()
 
@@ -254,7 +251,7 @@ plt.close()
 # Days between milestones (beer number x00)
 ###############################################################################
 d100 = df[df.Number%100==0].sort_values(by='Number').reset_index(drop=True)
-fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=50/(max(d100.Number)-min(d100.Number)+100))
 plt.xlabel('Milestone')
@@ -289,7 +286,7 @@ param_hesse = result.hesse()
 param_errors = result.errors
 print(result)
 
-fig, ax = plt.subplots(figsize=(16*.6,9*.6))
+fig, ax = plt.subplots(figsize=(16*.66,9*.66))
 plt.tight_layout()
 plt.margins(x=0)
 ax.set_xlabel("Beers drunk in a day")
@@ -305,6 +302,119 @@ plotOrderedLegend([1,0], loc=1)
 ax.set_yscale('log')
 applyUniformFont(ax,24)
 saveAndListPlot("beerMultiplicity.pdf", "Histogram of beers drunk on the same date")
+plt.close()
+
+
+###############################################################################
+# Histogram of volumes
+###############################################################################
+dGrp = df.groupby('Vol')
+x, y = dGrp.size().index, dGrp.size().values
+binw = .5*min(x[1:]-x[:-1])
+bins = np.concatenate([x-binw, x+binw])
+bins.sort()
+values = np.zeros_like(bins)[1:]
+values[np.digitize(x,bins)-1]=y
+fig, ax = plt.subplots(figsize=(16*.66,9*.66))
+plt.tight_layout()
+# plt.margins(x=50/(max(x)-min(x)+100))
+plt.margins(x=0)
+plt.xlabel('Volume [mL]')
+plt.ylabel('Counts')
+# plt.scatter(x, y, color=niceColour('beeryellow'))
+plotBorderedHist((values, bins), color=niceColour('beeryellow'))
+plt.xticks([100, 250, 330, 355, 440, 500, 660, 750], [100, 250, 330, 355, 440, 500, 660, 750], rotation=45)
+plt.minorticks_off()
+ax.set_yscale('log')
+plt.tick_params(axis='both', top=False, right=False, left=False)
+applyUniformFont(ax, 24)
+saveAndListPlot("histVolumes.pdf", "Distribution of bottle/can sizes")
+plt.close()
+
+
+###############################################################################
+# Volumes and mean ABVs
+###############################################################################
+dGrp = df.groupby('Vol')
+dg = df.Vol.value_counts()
+bins = np.linspace(0,len(dg),len(dg)+1)
+means = dGrp.ABV.mean()
+eoms = dGrp.ABV.std() / dGrp.ABV.count()
+fig, ax = plt.subplots(figsize=(16*.66,9*.66))
+plt.tight_layout()
+plt.margins(x=0.01)
+plt.axhline(muABV, lw=2.5, c=niceColour('beerbrown'))
+plt.axhline(muABV-errABV, lw=1.5, c=niceColour('beerbrown'), ls='--')
+plt.axhline(muABV+errABV, lw=1.5, c=niceColour('beerbrown'), ls='--')
+plt.errorbar(.5*(bins[1:]+bins[:-1]), means, eoms, False, ls='', marker='.', markersize=10, elinewidth=0, capthick=1, capsize=2.5, color='#f1bf4b')
+ax.set_xticks(.5*(bins[1:]+bins[:-1]))
+ax.minorticks_off()
+plt.xlabel('Volume [mL]')
+plt.ylabel("Mean ABV")
+applyUniformFont(ax,20)
+ax.set_xticklabels(means.index, rotation=45)
+ax.set_ylim([3.75,10.25])
+plt.tick_params(axis='x', pad=1)
+plt.tick_params(axis='both', top=False,right=False)
+saveAndListPlot("volumeABVs.pdf", "Mean ABV per bottle/can size")
+plt.close()
+
+###############################################################################
+# Country - Volume matrix
+###############################################################################
+d = df
+xtab = pd.crosstab(d.Vol, d.Country)
+# sort by most popular countries 
+xtab = xtab[xtab.sum().sort_values(ascending=False).index][::-1]
+fig, ax = plt.subplots(figsize=(20*.66,9*.66), layout='constrained')
+plt.margins(x=0)
+ax.set_xlabel('Country')
+ax.set_ylabel('Volume [mL]')
+
+im = ax.imshow(xtab, aspect='auto', norm=LogNorm(), rasterized=True, cmap='beer')
+volumes = xtab.index.tolist()
+countries = xtab.columns.tolist()
+
+# Set axis labels and tick positions
+plt.yticks(range(len(volumes)), volumes)
+applyUniformFont(ax,16)
+plt.xticks(range(len(countries)), countries, rotation=45, fontsize=10)
+plt.minorticks_off()
+plt.tick_params(axis='x', pad=1)
+plt.tick_params(axis='both', top=False, right=False, left=False)
+
+cbar = fig.colorbar(im, shrink=1., pad=.01)
+cbar.ax.tick_params(axis='both', pad=1)
+applyUniformFont(cbar.ax,16)
+saveAndListPlot("matrixCouVol.pdf", "Matrix of beer origin vs. bottle size")
+plt.close()
+
+# zoom-in of most popular countries and volumes
+xtab = xtab.reindex([750, 660, 500, 355, 330, 300]).T[:10].T
+# normalise countries
+h = [x/sum(x) for x in xtab.values]
+volumes = xtab.index.tolist()
+countries = xtab.columns.tolist()
+fig, ax = plt.subplots(figsize=(20*.66,9*.66), layout='constrained')
+plt.margins(x=0)
+ax.set_xlabel('Country')
+ax.set_ylabel('Volume [mL]')
+
+im = ax.imshow(h, aspect='auto', rasterized=True, cmap='beer', norm=LogNorm())
+# im = ax.pcolormesh(h, cmap='beer', cmin=.01, rasterized=True)
+
+# Set axis labels and tick positions
+plt.yticks(range(len(volumes)), volumes)
+applyUniformFont(ax,16)
+plt.xticks(range(len(countries)), countries, rotation=45)
+plt.minorticks_off()
+plt.tick_params(axis='x', pad=1)
+plt.tick_params(axis='both', top=False, right=False, left=False)
+
+cbar = fig.colorbar(im, shrink=1., pad=.01)
+cbar.ax.tick_params(axis='both', pad=1)
+applyUniformFont(cbar.ax,16)
+saveAndListPlot("matrixCouVolZoom.pdf", "Matrix of most popular beer origins vs. bottle sizes")
 plt.close()
 
 ###############################################################################

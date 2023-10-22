@@ -16,3 +16,11 @@
 
 [Histogram of beers drunk on the same date](https://nbviewer.org/github/RDMoise/many-beers/blob/main/beerMultiplicity.pdf)
 
+[Distribution of bottle/can sizes](https://nbviewer.org/github/RDMoise/many-beers/blob/main/histVolumes.pdf)
+
+[Mean ABV per bottle/can size](https://nbviewer.org/github/RDMoise/many-beers/blob/main/volumeABVs.pdf)
+
+[Matrix of beer origin vs. bottle size](https://nbviewer.org/github/RDMoise/many-beers/blob/main/matrixCouVol.pdf)
+
+[Matrix of most popular beer origins vs. bottle sizes](https://nbviewer.org/github/RDMoise/many-beers/blob/main/matrixCouVolZoom.pdf)
+

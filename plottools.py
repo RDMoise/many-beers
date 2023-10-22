@@ -36,6 +36,7 @@ def niceColour(colourname):
         "myrtle":       '#32746d', # greenish
         "claret":       '#710627', # dark red
         "emerald":      '#099a4f', 
+        "linegreen":    '#2ca58d', 
         "airblue":      '#26547c', 
         "oniblue":      '#287095', 
         "onicyan":      '#7dc6c2',
@@ -60,8 +61,8 @@ def niceColour(colourname):
 
 
 def registerCustomCmaps():
-    plt.cm.register_cmap(name="HeBkg", cmap=LinearSegmentedColormap.from_list("custom", colors=[niceColour('oniblue'), niceColour('RKorange')]))
-    plt.cm.register_cmap(name="beer", cmap=LinearSegmentedColormap.from_list("custom", colors=[niceColour('beeryellow'), niceColour('beerbrown')]))
+    plt.cm.register_cmap(name="HeBkg", cmap=LinearSegmentedColormap.from_list("HeBkg", colors=[niceColour('oniblue'), niceColour('onilgrey'), niceColour('RKorange')]))
+    plt.cm.register_cmap(name="beer", cmap=LinearSegmentedColormap.from_list("beer", colors=[niceColour('beeryellow'), niceColour('beerbrown')]))
     plt.cm.register_cmap(name="TLoutreach", cmap=LinearSegmentedColormap.from_list("TLoutreach", colors=['#3333C4', '#825F76', '#E48534', '#E48534'])) # '#5CC9CA', 
     plt.cm.register_cmap(name="bleachmelon", cmap=LinearSegmentedColormap.from_list("bleachmelon", colors=['#F08A82', '#208A82']))
     plt.cm.register_cmap(name="joker", cmap=LinearSegmentedColormap.from_list("joker", colors=[niceColour('RKdpurple'), niceColour('cbrDark2_3')]))
@@ -146,6 +147,13 @@ def roundedLatex(name, value, error, scientific=False):
     val, err, norm = pdgRound(value, error).print(scientific)
     if scientific: return f"{name}$=({val}\pm{err})\\times10^{{{norm}}}$"
     return f"{name}$={val}\pm{err}$"
+
+def scientificToLatex(x, digits=2):
+    string = f"{x:.{digits}e}"
+    mant, expo = string.split('e')
+    if expo[1] == '0': expo = expo[:1] + expo[2:]
+    expo = expo.replace('+','')
+    return f"${f'{mant}'}\\times10^{{{expo}}}$"
 
 
 def plotWithPulls(plotname, hists, styles, pulls, kwargs,
@@ -240,9 +248,9 @@ def makeWeightedPlot2DLog(plotname, dataX, dataY, weights, bins, xlabel, ylabel=
     return h, ax, xedges, yedges, im
 
 
-def plotNormalisedSlicesLog(dataX, dataY, binsX, binsY, xlabel=None, ylabel=None, figsize=(16*.6,9*.6)):
+def plotNormalisedSlicesLog(dataX, dataY, binsX, binsY, xlabel=None, ylabel=None, figsize=(16*.6,9*.6), cmap='cividis'):
     h0 = hist.Hist(hist.axis.Variable(binsX), 
-                   hist.axis.Variable(binsY))
+                   hist.axis.Variable(binsY),)
     h0.fill(dataX, dataY)
     h = np.array([x/sum(x) for x in h0.values()]) # normalise X slices to unity
     h[np.isnan(h)] = 0
@@ -250,14 +258,14 @@ def plotNormalisedSlicesLog(dataX, dataY, binsX, binsY, xlabel=None, ylabel=None
     fig, ax = plt.subplots(figsize=figsize)#, layout='constrained')
     ax.set_xlim([binsX[0], binsX[-1]])
     ax.set_ylim([binsY[0], binsY[-1]])
-    im = ax.pcolormesh(*h0.axes.edges.T, h.T, cmap="cividis", norm=LogNorm(), rasterized=True)
+    im = ax.pcolormesh(*h0.axes.edges.T, h.T, cmap=cmap, norm=LogNorm(), rasterized=True)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     plt.margins(x=0)
 
     cumulative_sum = [np.cumsum(x) for x in h]
     split_index = [np.argmax(s >= np.sum(x)/2) for x,s in zip(h,cumulative_sum)]
-    medians = [binsY[i] for i in split_index]
+    medians = [.5*(binsY[i]+binsY[i+1]) for i in split_index]
 
     return h, h0, ax, im, medians
 
@@ -302,16 +310,18 @@ def makeKiwiPlot(plotname, hist, bins, errs=False, ylims=None, ring=None, title=
     return fig, ax
 
 
-def applyUniformFont(ax, fontsize):
+def applyUniformFont(ax, fontsize, in3d=False):
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + 
-                  ax.get_xticklabels() + ax.get_yticklabels() +
+                  ax.get_xticklabels() + ax.get_yticklabels() + 
                   ax.get_xticklabels(minor=True) + ax.get_yticklabels(minor=True)):
         item.set_fontsize(fontsize)
+    if in3d: 
+        for item in [ax.zaxis.label] + ax.get_zticklabels() + ax.get_zticklabels(minor=True): item.set_fontsize(fontsize)
 
 
-def plotOrderedLegend(order=None, handles=None, labels=None, fontsize=20, loc='best', title=None, titlesize=20):
+def plotOrderedLegend(order=None, handles=None, labels=None, fontsize=20, loc='best', title=None, titlesize=20, kwargs={}):
     if handles== None or labels== None: handles, labels = plt.gca().get_legend_handles_labels()
-    leg = plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order], fontsize=fontsize, loc=loc, title=title)
+    leg = plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order], fontsize=fontsize, loc=loc, title=title, **kwargs)
     leg.get_title().set_fontsize(titlesize)
     return leg
 
@@ -359,9 +369,9 @@ def plotRectangles(H, ec=niceColour('onidgrey'), fc=niceColour('onilgrey'), lw=2
         # plt.gca().add_patch(plt.Rectangle((H[1][i], binvals[i]), H[1][i+1]-H[1][i], 1., fc='black', ec='black'))
     return h
 
-def plotBorderedHist(h, handles=[], labels=[], color=niceColour('oniblue'), alpha=.3, label=None, kwargs={}, binwnorm=None, density=False):
-    histplot(h, color=color, **kwargs, density=density, binwnorm=binwnorm, histtype="fill", alpha=alpha, label=label)  
-    histplot(h, color=color, **kwargs, density=density, binwnorm=binwnorm, histtype="step") 
+def plotBorderedHist(h, handles=[], labels=[], color=niceColour('oniblue'), alpha=.3, label=None, kwargs={}, binwnorm=None, density=False, zorder=1):
+    histplot(h, color=color, **kwargs, density=density, binwnorm=binwnorm, histtype="fill", alpha=alpha, label=label, zorder=zorder)  
+    histplot(h, color=color, **kwargs, density=density, binwnorm=binwnorm, histtype="step", zorder=zorder) 
     pFill = mpatches.Patch(fc=color, **kwargs, alpha=alpha, label=label)
     pStep = mpatches.Patch(ec=color, **kwargs, color='none')
     handles.append((pStep, pFill))
