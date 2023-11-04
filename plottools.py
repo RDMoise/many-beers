@@ -320,7 +320,9 @@ def applyUniformFont(ax, fontsize, in3d=False):
 
 
 def plotOrderedLegend(order=None, handles=None, labels=None, fontsize=20, loc='best', title=None, titlesize=20, kwargs={}):
-    if handles== None or labels== None: handles, labels = plt.gca().get_legend_handles_labels()
+    if handles==None and labels==None: handles, labels = plt.gca().get_legend_handles_labels()
+    elif handles==None: handles, _ = plt.gca().get_legend_handles_labels()
+    elif labels==None: _, labels = plt.gca().get_legend_handles_labels()
     leg = plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order], fontsize=fontsize, loc=loc, title=title, **kwargs)
     leg.get_title().set_fontsize(titlesize)
     return leg
@@ -340,7 +342,7 @@ def getSubplotExtent(ax, hpad=0, vpad=0):
 
 
 # def hideEmptyBins(H, kwargs={'color': 'black', 'linestyle': '', 'marker': '.', 'markersize': 10., 'elinewidth': 1}):
-def hideEmptyBins(H, color='black', linestyle='', marker='.', markersize=10., capsize=2.5, elinewidth=1, label=None, binwnorm=None, density=False):
+def hideEmptyBins(H, color='black', linestyle='', marker='.', markersize=15., capsize=0, elinewidth=2.5, label=None, binwnorm=None, density=False):
     '''hide the error bars of bins with 0 entries'''
     h = histplot(H, yerr=True, density=density, histtype="errorbar", alpha=0, binwnorm=binwnorm)[0]
     binning = [x for x in h.errorbar][0].get_xdata()

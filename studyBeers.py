@@ -21,11 +21,13 @@ import matplotlib.patheffects as pe
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 from matplotlib.ticker import *
 matplotlib.colormaps.register(name="beer", cmap=LinearSegmentedColormap.from_list("beer", colors=[niceColour('beeryellow'), niceColour('beerbrown')]))
+import seaborn as sns
 
 # df = pd.read_csv("1202beers.csv", delimiter=';', encoding='utf-8')
 # df = pd.read_csv("1230beers.csv", delimiter=',', encoding='utf-8')
 # df = pd.read_csv("1247beers.csv", delimiter=';', encoding='utf-8')
-df = pd.read_csv("1298beers.csv", delimiter=';', encoding='utf-8')
+# df = pd.read_csv("1298beers.csv", delimiter=';', encoding='utf-8')
+df = pd.read_csv("1322beers.csv", delimiter=';', encoding='utf-8')
 plotList = open("plotList.md", "w")
 
 def saveAndListPlot(plotname, description='test', url='many-beers/blob/main/'):
@@ -398,21 +400,26 @@ plt.margins(x=0)
 ax.set_xlabel('Country')
 ax.set_ylabel('Volume [mL]')
 
-im = ax.imshow(xtab, aspect='auto', norm=LogNorm(), rasterized=True, cmap='beer')
+# im = ax.imshow(xtab, aspect='auto', norm=LogNorm(), rasterized=True, cmap='beer')
+sns.heatmap(xtab, mask=xtab==0, cmap='beer', square=True, vmin=0, linewidths=0, cbar_kws=dict(shrink=.75, pad=.01))
 volumes = xtab.index.tolist()
 countries = xtab.columns.tolist()
 
 # Set axis labels and tick positions
-plt.yticks(range(len(volumes)), volumes)
+# plt.yticks(range(len(volumes)), volumes)
 applyUniformFont(ax,16)
-plt.xticks(range(len(countries)), countries, rotation=45, fontsize=10)
+# plt.xticks(range(len(countries)), countries, rotation=45, fontsize=10)
+plt.xticks(np.arange(.5,len(countries),1), countries, rotation=45, fontsize=10)
 plt.minorticks_off()
 plt.tick_params(axis='x', pad=1)
-plt.tick_params(axis='both', top=False, right=False, left=False)
+plt.tick_params(axis='both', top=False, right=False, left=False, bottom=False)
 
-cbar = fig.colorbar(im, shrink=1., pad=.01)
-cbar.ax.tick_params(axis='both', pad=1)
-applyUniformFont(cbar.ax,16)
+cbar = ax.collections[0].colorbar
+cbar.ax.tick_params(axis='both', pad=1, labelsize=16)
+cbar.ax.minorticks_off()
+# cbar = fig.colorbar(im, shrink=1., pad=.01)
+# cbar.ax.tick_params(axis='both', pad=1)
+# applyUniformFont(cbar.ax,16)
 saveAndListPlot("matrixCouVol.pdf", "Matrix of beer origin vs. bottle size")
 plt.close()
 
