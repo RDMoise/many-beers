@@ -27,7 +27,8 @@ import seaborn as sns
 # df = pd.read_csv("1230beers.csv", delimiter=',', encoding='utf-8')
 # df = pd.read_csv("1247beers.csv", delimiter=';', encoding='utf-8')
 # df = pd.read_csv("1298beers.csv", delimiter=';', encoding='utf-8')
-df = pd.read_csv("1322beers.csv", delimiter=';', encoding='utf-8')
+# df = pd.read_csv("1322beers.csv", delimiter=';', encoding='utf-8')
+df = pd.read_csv("1407beers.csv", delimiter=';', encoding='utf-8')
 plotList = open("plotList.md", "w")
 
 def saveAndListPlot(plotname, description='test', url='many-beers/blob/main/'):
@@ -228,7 +229,7 @@ ax.fill_between([dAfter.Date[0]] + list(dAfter.Date), np.array(mus)+errs, np.arr
 p1 = ax.plot([dAfter.Date[0]] + list(dAfter.Date), mus, color='#751d1d', lw=2.5, label='bla')
 muABV, errABV = mus[-1], errs[-1]
 plt.text(np.max(dAfter.Date), mus[-1], f"$({muABV:.2f}\pm{errABV:.2f})\\%$", color='#751d1d', va='center', rotation=-90, fontsize=14)
-ax.set_xlim([dt.date(2018,1,1), dt.date(2024,1,1)])
+ax.set_xlim([dt.date(2018,1,1), dt.date(2025,1,1)])
 ax.set_ylim([5.4, 6.2])
 
 # Impact of country of residence
