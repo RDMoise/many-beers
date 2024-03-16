@@ -23,6 +23,19 @@ from matplotlib.ticker import *
 matplotlib.colormaps.register(name="beer", cmap=LinearSegmentedColormap.from_list("beer", colors=[niceColour('beeryellow'), niceColour('beerbrown')]))
 import seaborn as sns
 
+# patch to adjust code for margins in 3D projections
+###patch start###
+from mpl_toolkits.mplot3d.axis3d import Axis
+if not hasattr(Axis, "_get_coord_info_old"):
+    def _get_coord_info_new(self, renderer):
+        mins, maxs, centers, deltas, tc, highs = self._get_coord_info_old(renderer)
+        mins += deltas / 4
+        maxs -= deltas / 4
+        return mins, maxs, centers, deltas, tc, highs
+    Axis._get_coord_info_old = Axis._get_coord_info  
+    Axis._get_coord_info = _get_coord_info_new
+###patch end###
+
 # df = pd.read_csv("1202beers.csv", delimiter=';', encoding='utf-8')
 # df = pd.read_csv("1230beers.csv", delimiter=',', encoding='utf-8')
 # df = pd.read_csv("1247beers.csv", delimiter=';', encoding='utf-8')
@@ -450,6 +463,100 @@ cbar = fig.colorbar(im, shrink=1., pad=.01)
 cbar.ax.tick_params(axis='both', pad=1)
 applyUniformFont(cbar.ax,16)
 saveAndListPlot("matrixCouVolZoom.pdf", "Matrix of most popular beer origins vs. bottle sizes")
+plt.close()
+
+###############################################################################
+# Group by storage, which (somewhat) approximates countries of origin
+###############################################################################
+class Storage:
+    def __init__(self, name: str, capacity: int, description: str, colour):
+        self.name = name # identifier in the collection
+        self.capacity = capacity # how big the album is
+        self.description = description # description
+        self.colour = colour if type(colour) == str else '#{:02x}{:02x}{:02x}'.format(*colour)# for plotting purposes
+def rgb(r,g,b): return np.array([r,g,b]) # colour conversion & compatibility with colour-display addon
+
+sChonkyBrown = Storage("Chonky brown", 650, "International", rgb(98,70,46))
+sChonkyBrown2 = Storage("Chonky brown 2", 650, "Franco-Swiss", rgb(113,78,45)) 
+sTallBlack = Storage("Tall black", 400, "Belgian", 'black')
+sBigBrown = Storage("Big brown", 300, "British", rgb(165,87,49))
+sGreen = Storage("Green", 300, "German", rgb(34,58,36))
+sBlue = Storage("Blue", 200, "Romanian", 'midnightblue')
+sWhite = Storage("White", 200, "Hall of Fame", clr.onidgrey)
+sRed = Storage("Red", 100, "Dutch", clr.claret)
+
+# temporary albummates
+d.loc[(d.Storage == 'Chonky brown')&((d.Country == 'FR')|(d.Country == 'CH')), 'Storage'] = "Chonky brown 2"
+nStorage = 8 + 1
+
+# ABV histogram
+binning = np.linspace(-.5,18.5,20)
+
+fig, ax = plt.subplots(figsize=(16*.66,9*.66))
+plt.tight_layout()
+plt.margins(x=0)
+ps, ls = [], []
+for storage in [sChonkyBrown, sChonkyBrown2, sTallBlack, sBigBrown, sGreen, sBlue, sWhite, sRed]:
+    dS = df[df.Storage == storage.name]
+    hABV = np.histogram(dS.ABV, binning)
+    muABV = np.mean(dS.ABV)
+    stdABV = np.std(dS.ABV)
+    label = storage.description + f' ({len(dS)})\n' + fr'{muABV:.1f} $\pm$ {stdABV:.1f}'
+    plotBorderedHist(hABV, ps, ls, storage.colour, 0.5, label, density=True)
+    plt.xlabel('ABV [%]')
+    plt.ylabel("Beers / 1% (normalised)")
+
+applyUniformFont(ax,24)
+leg = plotOrderedLegend(list(range(len(ps))), ps, ls, loc='upper right', fontsize=16)
+saveAndListPlot("histABV_storage.pdf", "Histogram of ABVs for each storage")
+plt.close()
+
+# do it in 3D
+# NB: relies on the legend from the previous plot
+binning = np.linspace(-.5,18.5,20)
+nStorage = 8 + 1
+
+fig = plt.figure(figsize=(16,9))
+ax = fig.add_axes([0,0,1,1], projection='3d')
+ax.margins(x=0, y=0, z=0)
+ax.set_box_aspect([3,6,3])
+ax.view_init(elev=15, azim=-45)
+ax.minorticks_off()
+ax.zaxis.set_minor_locator(plt.NullLocator())
+# ax.autoscale(axis='y', tight=False)
+
+# Set a white background color
+ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 1.0))
+ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 1.0))
+ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 1.0))
+
+for division in [0, 5, 10, 15,]: ax.plot([division]*(nStorage-1), range(1, nStorage), c='black', lw=2)
+ax.plot([0, binning[-1]], [nStorage-1, nStorage-1], c='black', lw=2)
+ax.set_xlabel('ABV [%]', labelpad=10)
+ax.set_ylabel("Storage", labelpad=10)
+ax.set_zlabel("Beers / 1% (normalised)", labelpad=15)
+
+ax.grid(False)
+plt.tick_params(axis='both', which='both', pad=0)
+plt.tick_params(axis='z', which='both', pad=9)
+applyUniformFont(ax, 18, in3d=True)
+
+for i, storage in enumerate([sChonkyBrown, sChonkyBrown2, sTallBlack, sBigBrown, sGreen, sBlue, sWhite, sRed]):
+    dS = df[df.Storage == storage.name]
+    hABV, _ = np.histogram(dS.ABV, binning)
+    norm = sum(hABV)*(binning[1]-binning[0])
+
+    muABV = np.mean(dS.ABV)
+    stdABV = np.std(dS.ABV)
+
+    ax.bar(binning[:-1], hABV/norm, width=binning[1]-binning[0], color=storage.colour, align='edge', zs=i+1, zdir='y', alpha=.5)
+    # Add outlines at the top of the bars
+    for j in range(len(binning)-1): 
+        ax.plot([binning[j], binning[j+1]], [hABV[j]/norm, hABV[j]/norm], zs=i+1, zdir='y', color=storage.colour, linewidth=1)
+        ax.plot([binning[j], binning[j]], [hABV[j]/norm, hABV[j-1]/norm], zs=i+1, zdir='y', color=storage.colour, linewidth=1)
+
+plotOrderedLegend(list(range(len(ps))), ps, ls, loc='upper left', fontsize=16, kwargs=dict(ncol=4))
+saveAndListPlot("histABV_storage_3D.pdf", "Histogram of ABVs for each storage (in 3D)")
 plt.close()
 
 ###############################################################################

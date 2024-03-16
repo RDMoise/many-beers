@@ -24,3 +24,7 @@
 
 [Matrix of most popular beer origins vs. bottle sizes](https://nbviewer.org/github/RDMoise/many-beers/blob/main/matrixCouVolZoom.pdf)
 
+[Histogram of ABVs for each storage](https://nbviewer.org/github/RDMoise/many-beers/blob/main/histABV_storage.pdf)
+
+[Histogram of ABVs for each storage (in 3D)](https://nbviewer.org/github/RDMoise/many-beers/blob/main/histABV_storage_3D.pdf)
+

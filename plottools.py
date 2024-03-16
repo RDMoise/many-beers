@@ -4,7 +4,7 @@ import numpy as np
 import hist as hist
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-plt.switch_backend('agg') # when on batch
+# plt.switch_backend('agg') # when on batch
 import matplotlib
 from mplhep import histplot, style
 style.use(style.LHCb2)
@@ -16,11 +16,11 @@ ROOTDIR = environ.get('ROOTDIR')
 TUPLEDIR = environ.get('TUPLEDIR')
 HPCWORK = environ.get('HPCWORK')
 
-def niceColour(colourname):
+def niceColour(colourname=None):
     colours = {
-        "RKorange":     (0.992, 0.6823, 0.3804), # f1b16e
+        "RKorange":     '#f1b16e', #(0.992, 0.6823, 0.3804),  
         "RKlblue":      (119./255, 162./255, 251./255),
-        "RKred":        (0.8431, 0.098, 0.1098), # D7191C
+        "RKred":        '#D7191C', #(0.8431, 0.098, 0.1098), # 
         "RKdblue":      (0.1725, 0.4824, 0.7137),
         "RKyellow":     (1., 1., 191/255.),
         "RKgreen":      (136./255,221./255,157./255),
@@ -48,6 +48,7 @@ def niceColour(colourname):
         "oniyellow":    '#ebc892',
         "onidpurple":   '#393674',
         "onilpurple":   '#666da3',
+        "pastelpurple": '#747CAA',
         "LHCbdblue":    '#0057a7',
         "LHCblblue":    '#d2eefa',
         "LHCbred":      '#de2f29',
@@ -55,17 +56,30 @@ def niceColour(colourname):
         "alexagreen":   '#348a82',
         "beeryellow":   '#f1bf4b',
         "beerbrown":    '#751d1d',
+        "crem":         '#f5e3c3'
         # "qualSet2":     ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854','#ffd92f','#e5c494','#b3b3b3'],
     }
+    if colourname == None: return colours    
     return colours[colourname]
+
+class niceColours:
+    def __init__(self) -> None:
+        self.__dict__.update(**niceColour())
+clr = niceColours()
 
 
 def registerCustomCmaps():
-    plt.cm.register_cmap(name="HeBkg", cmap=LinearSegmentedColormap.from_list("HeBkg", colors=[niceColour('oniblue'), niceColour('onilgrey'), niceColour('RKorange')]))
-    plt.cm.register_cmap(name="beer", cmap=LinearSegmentedColormap.from_list("beer", colors=[niceColour('beeryellow'), niceColour('beerbrown')]))
+    plt.cm.register_cmap(name="HeBkg", cmap=LinearSegmentedColormap.from_list("HeBkg", colors=[clr.oniblue, clr.onilgrey, clr.RKorange]))
+    plt.cm.register_cmap(name="HeBkg2", cmap=LinearSegmentedColormap.from_list("HeBkg", colors=[clr.oniblue, clr.onilpurple, clr.RKorange]))
+    plt.cm.register_cmap(name="beer", cmap=LinearSegmentedColormap.from_list("beer", colors=[clr.beeryellow, clr.beerbrown]))
     plt.cm.register_cmap(name="TLoutreach", cmap=LinearSegmentedColormap.from_list("TLoutreach", colors=['#3333C4', '#825F76', '#E48534', '#E48534'])) # '#5CC9CA', 
     plt.cm.register_cmap(name="bleachmelon", cmap=LinearSegmentedColormap.from_list("bleachmelon", colors=['#F08A82', '#208A82']))
-    plt.cm.register_cmap(name="joker", cmap=LinearSegmentedColormap.from_list("joker", colors=[niceColour('RKdpurple'), niceColour('cbrDark2_3')]))
+    plt.cm.register_cmap(name="joker", cmap=LinearSegmentedColormap.from_list("joker", colors=[clr.RKdpurple, clr.cbrDark2_3]))
+
+
+def sampleCmapColours(mapname, N):
+    cmap = plt.cm.get_cmap(mapname)
+    return [matplotlib.colors.rgb2hex(x, keep_alpha=True) for x in cmap(np.linspace(0, 1, N))]
 
 
 def saveplot(name):
@@ -103,7 +117,7 @@ class PlotOptions:
     def ylabel_candidates(self, unit=''): return f"Candidates per {self.binw} {unit}"
 
 
-class pdgRound:
+class PDGRound:
     '''Given a value and an error, round and format them according to the PDG rules for significant digits
        Adapted from: https://github.com/gerbaudo/python-scripts/blob/master/various/pdgRounding.py'''
     def __init__(self, value, error):
@@ -144,7 +158,7 @@ class pdgRound:
 
 def roundedLatex(name, value, error, scientific=False):
     '''Convert the output of pdgRound to a nicely-displayable piece of latex'''
-    val, err, norm = pdgRound(value, error).print(scientific)
+    val, err, norm = PDGRound(value, error).print(scientific)
     if scientific: return f"{name}$=({val}\pm{err})\\times10^{{{norm}}}$"
     return f"{name}$={val}\pm{err}$"
 
@@ -159,8 +173,34 @@ def scientificToLatex(x, digits=2):
 def plotWithPulls(plotname, hists, styles, pulls, kwargs,
     xlabel, ylabel="A.U.", 
     kwargsPulls=[{'color': niceColour('onilred'), 'histtype': 'fill', 'alpha': 1}],
-    legendloc='best', legendsize=24, legendtitle=None,
+    legendloc='upper right', legendsize=24, legendtitle=None, legendorder=None,
+    uniformFontSize=24,
     directory=f'{ROOTDIR}plots/', height_ratios=[4,1]):
+    """
+    Make a plot of a fit result with the pulls underneath.
+
+    Parameters:
+    plotname (str): The name of the plot file.
+    hists (list): A list of histogram tuples.
+    styles (list): A list of plotting styles.
+    pulls (list): A list of pull arrays or a single pull array.
+    kwargs (dict): A list of dictionaries of plotting arguments for each hist.
+    xlabel (str): The x-axis label.
+    ylabel (str): The y-axis label.
+    kwargsPulls (list): A list of dictionaries of plotting arguments for pulls.
+    legendloc (str): The location of the legend.
+    legendsize (int): The font size of the legend.
+    legendtitle (str): The title of the legend.
+    directory (str): The directory to save the plot file.
+    height_ratios (list): The height ratios of the subplots.
+
+    Returns:
+    fig (matplotlib.figure.Figure): The figure object.
+    gs (matplotlib.gridspec.GridSpec): The gridspec object.
+    """
+    # Default legend order where it is assumed the first hist corresponds to data points plotted using hideEmptyBins.
+    if legendorder==None: legendorder = [len(hists)-1]+list(range(len(hists)-1))
+
     fig = plt.figure(figsize=[10,7.5])
     gs = matplotlib.gridspec.GridSpec(ncols=1, nrows=2, height_ratios=height_ratios)
 
@@ -169,12 +209,14 @@ def plotWithPulls(plotname, hists, styles, pulls, kwargs,
     plt.margins(x=0)
     for i in range(len(hists)):
         if styles[i] == 'histplot':         histplot(*hists[i], **kwargs[i])
-        elif styles[i] == 'histplotclean':  hideEmptyBins(hists[i], **kwargs[i])
+        elif styles[i] == 'histplotclean':  hideEmptyBins(*hists[i], kwargs=kwargs[i])
         elif styles[i] == 'pltplot':        plt.plot(*hists[i], **kwargs[i])
+        elif styles[i] == 'fill':        plt.fill_between(*hists[i], **kwargs[i])
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.legend(loc=legendloc, fontsize=legendsize, title=legendtitle).get_title().set_fontsize(legendsize)
+    # plt.legend(loc=legendloc, fontsize=legendsize, title=legendtitle).get_title().set_fontsize(legendsize)
+    plotOrderedLegend(legendorder, loc=legendloc, fontsize=legendsize, title=legendtitle, titlesize=legendsize)
 
     ax1 = plt.subplot(gs[1])
     plt.tight_layout()
@@ -182,19 +224,64 @@ def plotWithPulls(plotname, hists, styles, pulls, kwargs,
     plt.axhline(y=0 , color='black', linewidth=2, alpha=1.) 
     plt.axhline(y=-3, color='black', linestyle='--', linewidth=1, alpha=1.) 
     plt.axhline(y=3, color='black', linestyle='--', linewidth=1, alpha=1.) 
-    if type(pulls) == tuple: Hpulls = histplot(pulls, **kwargsPulls[0]) # for backwards compatibility
+    if type(pulls) == tuple: Hpulls = histplot(pulls, **kwargsPulls[0]) # more often than not only one set of pulls is plotted
     else:
-        for i in range(len(pulls)): Hpulls = histplot(*pulls[i], **kwargsPulls[i])
+        for i in range(len(pulls)): Hpulls = histplot(*pulls[i], **kwargsPulls[i]) 
     plt.ylim([-5,5])
     plt.tight_layout()
     plt.margins(x=0)
     ax1.set_xticklabels([])
     plt.ylabel("Pulls")
-    applyUniformFont(ax, 32)
-    applyUniformFont(ax1, 32)
+    applyUniformFont(ax, uniformFontSize)
+    applyUniformFont(ax1, uniformFontSize)
     if plotname != None: plt.savefig(f"{directory}{plotname}.pdf")
 
     return fig, gs
+
+
+class handlerFitPlot:
+    """
+    A class to store the information needed to plot a fit result using plotFitResult.
+
+    Parameters:
+        plotHists (list): A list of histogram indices.
+        plotStyle (str): The plotting style, e.g. "histplot".
+        plotArg (dict): A dictionary of plotting arguments.
+
+    Returns:
+        None.
+
+    """
+    def __init__(self, plotHists: list, plotStyle: str, plotArg: dict) -> None:
+        self.plotHists = plotHists
+        self.plotStyle = plotStyle
+        self.plotArg = plotArg
+
+
+def plotFitResult(hists: list, pulls, handlers: handlerFitPlot, kwargs: dict):
+    """
+    Plot the result of a fit by interfacing with plotWithPulls using a list of handlerFitPlot objects and the corresponding hists.
+
+    Parameters:
+        hists (list): A list of histograms, where each histogram is a tuple of (bin edges, counts/errors), except the first histogram. This one has to correspond to the data points and be (counts, bin edges) instead.
+        pulls (list): pulls or a list of pulls.
+        handlers (handlerFitPlot): A list of handlerFitPlot objects, which define the histograms to plot and their plotting options.
+        kwargs (dict): A dictionary of options for plotWithPulls.
+
+    Returns:
+        fig (matplotlib.figure.Figure): The figure object.
+        gs (matplotlib.gridspec.GridSpec): The gridspec object.
+
+    """
+    # first hist has to correspond to the data points and have correctly binned pulls
+    assert len(pulls) == len(hists[0][0])
+    plotHists, plotStyles, plotArgs = [], [], []
+    for handler in handlers:
+        # plotHists.append((hists[handler.plotHists[0]][0], hists[handler.plotHists[0]][1]))
+        plotHists.append((hists[handler.plotHists[0]][0], sum([hists[i][1] for i in handler.plotHists])))
+        plotStyles.append(handler.plotStyle)
+        plotArgs.append(handler.plotArg)
+    return plotWithPulls(None, plotHists, plotStyles, (pulls, hists[0][1]), plotArgs, **kwargs)
 
 
 def makeWeightedPlot2D(plotname, dataX, dataY, weights, bins, xlabel, ylabel="A.U.", label='', directory=f'{ROOTDIR}plots/', cmin=1e-8, cmap='cividis'):
@@ -222,7 +309,7 @@ def makeWeightedPlot2D(plotname, dataX, dataY, weights, bins, xlabel, ylabel="A.
     return h, ax, xedges, yedges, im
 
 
-def makeWeightedPlot2DLog(plotname, dataX, dataY, weights, bins, xlabel, ylabel="A.U.", label='', directory=f'{ROOTDIR}plots/', norm=LogNorm(), cmin=1e-8, cmap='cividis'):
+def makeWeightedPlot2DLog(plotname, dataX, dataY, weights, bins, xlabel, ylabel="A.U.", label='', directory=f'{ROOTDIR}plots/', norm=LogNorm(), cmin=1e-8, cmap='cividis', bounds=None):
     fig, ax = plt.subplots(figsize=(9, 8)) # , layout='constrained'
     h, xedges, yedges, im = ax.hist2d(
                             dataX, dataY,
@@ -235,7 +322,8 @@ def makeWeightedPlot2DLog(plotname, dataX, dataY, weights, bins, xlabel, ylabel=
                             rasterized=True
                             )
     # plt.legend()
-    plt.colorbar(im)
+    cbar = plt.colorbar(im)
+    if bounds != None: cbar.mappable.set_clim(*bounds)
     # fig.colorbar(h[3], ax=ax)
     plt.text(.05,.9, label, transform=ax.transAxes, fontsize=24)
     plt.xlabel(xlabel)
@@ -342,18 +430,29 @@ def getSubplotExtent(ax, hpad=0, vpad=0):
 
 
 # def hideEmptyBins(H, kwargs={'color': 'black', 'linestyle': '', 'marker': '.', 'markersize': 10., 'elinewidth': 1}):
-def hideEmptyBins(H, color='black', linestyle='', marker='.', markersize=15., capsize=0, elinewidth=2.5, label=None, binwnorm=None, density=False):
-    '''hide the error bars of bins with 0 entries'''
-    h = histplot(H, yerr=True, density=density, histtype="errorbar", alpha=0, binwnorm=binwnorm)[0]
-    binning = [x for x in h.errorbar][0].get_xdata()
-    binvals = [x for x in h.errorbar][0].get_ydata()
-    binlos = [x for x in h.errorbar][1][0].get_ydata()
-    binhis = [x for x in h.errorbar][1][1].get_ydata()
-    for i in range(len(binvals)):
-        if binvals[i] <= 0:
-            binlos[i] = binvals[i]
-            binhis[i] = binvals[i]
-    plt.errorbar(binning, binvals, yerr=(binvals-binlos, binhis-binvals), color=color, linestyle=linestyle, marker=marker, markersize=markersize, capsize=capsize, elinewidth=elinewidth, label=label)
+# def hideEmptyBins(H, color='black', linestyle='', marker='.', markersize=10., capsize=0, elinewidth=2.5, label=None, binwnorm=None, density=False, zorder=99, kwargs={}):
+#     '''hide the error bars of bins with 0 entries'''
+#     h = histplot(H, yerr=True, density=density, histtype="errorbar", alpha=0, zorder=zorder, binwnorm=binwnorm, **kwargs)[0]
+#     binning = [x for x in h.errorbar][0].get_xdata()
+#     binvals = [x for x in h.errorbar][0].get_ydata()
+#     binlos = [x for x in h.errorbar][1][0].get_ydata()
+#     binhis = [x for x in h.errorbar][1][1].get_ydata()
+#     for i in range(len(binvals)):
+#         if binvals[i] <= 0:
+#             binlos[i] = binvals[i]
+#             binhis[i] = binvals[i]
+#     plt.errorbar(binning, binvals, yerr=(binvals-binlos, binhis-binvals), color=color, linestyle=linestyle, marker=marker, markersize=markersize, capsize=capsize, elinewidth=elinewidth, label=label, zorder=zorder)
+#     return h
+
+
+def hideEmptyBins(vals, bins, kwargs={}):
+    '''hide bins of a histogram that have 0 entries'''
+    defaults = dict(color=clr.LHCbdblue, linestyle='', marker='.', markersize=10., elinewidth=1, capsize=0, zorder=99, label='Data')
+    for key, value in defaults.items(): kwargs.setdefault(key, value)
+
+    vals = np.array(vals, dtype=float)
+    vals[vals==0] = np.nan
+    h = histplot((vals, bins), histtype='errorbar', **kwargs)
     return h
 
 
@@ -371,9 +470,9 @@ def plotRectangles(H, ec=niceColour('onidgrey'), fc=niceColour('onilgrey'), lw=2
         # plt.gca().add_patch(plt.Rectangle((H[1][i], binvals[i]), H[1][i+1]-H[1][i], 1., fc='black', ec='black'))
     return h
 
-def plotBorderedHist(h, handles=[], labels=[], color=niceColour('oniblue'), alpha=.3, label=None, kwargs={}, binwnorm=None, density=False, zorder=1):
-    histplot(h, color=color, **kwargs, density=density, binwnorm=binwnorm, histtype="fill", alpha=alpha, label=label, zorder=zorder)  
-    histplot(h, color=color, **kwargs, density=density, binwnorm=binwnorm, histtype="step", zorder=zorder) 
+def plotBorderedHist(h, handles=[], labels=[], color=niceColour('oniblue'), alpha=.3, label=None, kwargs={}, binwnorm=None, density=False, zorder=1, stack=False):
+    histplot(h, color=color, **kwargs, density=density, binwnorm=binwnorm, histtype="fill", alpha=alpha, label=label, zorder=zorder, stack=stack)
+    histplot(h, color=color, **kwargs, density=density, binwnorm=binwnorm, histtype="step", zorder=zorder, stack=stack)
     pFill = mpatches.Patch(fc=color, **kwargs, alpha=alpha, label=label)
     pStep = mpatches.Patch(ec=color, **kwargs, color='none')
     handles.append((pStep, pFill))
