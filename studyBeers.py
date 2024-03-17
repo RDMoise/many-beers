@@ -560,6 +560,71 @@ saveAndListPlot("histABV_storage_3D.pdf", "Histogram of ABVs for each storage (i
 plt.close()
 
 ###############################################################################
+# Group by beer type
+###############################################################################
+# sanitation
+d['Type'] = d['Type'].fillna('')
+d.loc[(d['Type'].str.contains('IPA'))&(d['Type']!='IPA'), 'Type'] = 'weird IPA'
+d.loc[(d['Type']=='pils'), 'Type'] = 'pilsner'
+
+btypes = list(set(np.concatenate([x.split(', ') for x in pd.value_counts(d.Type).index])))[1:] # split composite types, ignore empty values
+counts = [(btype, sum([1 for typ in d.Type if btype in typ])) for btype in btypes]
+
+nCounts = 20
+countsType = sorted(counts, key=lambda x: x[1], reverse=True)[:nCounts] 
+colours = sampleCmapColours('beer', nCounts)
+ps, ls = [], []
+
+fig = plt.figure(figsize=(16,9))
+ax = fig.add_axes([0,0,1,1], projection='3d')
+ax.margins(x=0, y=0, z=0)
+ax.set_box_aspect([3,10,3])
+ax.view_init(elev=15, azim=-45)
+ax.minorticks_off()
+ax.zaxis.set_minor_locator(plt.NullLocator())
+# ax.autoscale(axis='y', tight=False)
+
+# Set a white background color
+ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 1.0))
+ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 1.0))
+ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 1.0))
+
+for division in [0, 5, 10, 15,]: ax.plot([division]*(nCounts), range(nCounts), c='black', lw=2)
+ax.plot([0, binning[-1]], [nCounts-1, nCounts-1], c='black', lw=2)
+ax.set_xlabel('ABV [%]', labelpad=10)
+ax.set_ylabel("Beer type", labelpad=60)
+ax.set_yticks(list(range(nCounts)), [x[0] for x in countsType], rotation=90)
+ax.set_zlabel("Beers / 1% (normalised)", labelpad=15)
+
+ax.grid(False)
+plt.tick_params(axis='both', which='both', pad=0)
+plt.tick_params(axis='z', which='both', pad=9)
+applyUniformFont(ax, 18, in3d=True)
+
+for i, (btype, count) in enumerate(countsType):
+    dS = d[d.Type.str.contains(btype)]
+    hABV, _ = np.histogram(dS.ABV, binning)
+    norm = sum(hABV)*(binning[1]-binning[0])
+
+    muABV = np.mean(dS.ABV)
+    stdABV = np.std(dS.ABV)
+
+    pFill = mpatches.Patch(fc=colours[i], alpha=.5, label=btype)
+    pStep = mpatches.Patch(ec=colours[i], color='none')
+    ps.append((pStep, pFill))
+    ls.append(f'{btype} ({count}) \n'+fr'{muABV:.1f} $\pm$ {stdABV:.1f}')
+
+    ax.bar(binning[:-1], hABV/norm, width=binning[1]-binning[0], color=colours[i], align='edge', zs=i, zdir='y', alpha=.5)
+    # Add outlines at the top of the bars
+    for j in range(len(binning)-1): 
+        ax.plot([binning[j], binning[j+1]], [hABV[j]/norm, hABV[j]/norm], zs=i, zdir='y', color=colours[i], linewidth=1)
+        ax.plot([binning[j], binning[j]], [hABV[j]/norm, hABV[j-1]/norm], zs=i, zdir='y', color=colours[i], linewidth=1)
+
+plotOrderedLegend(list(range(len(ps))), ps, ls, loc='upper left', fontsize=16, kwargs=dict(ncol=5))
+saveAndListPlot("histABV_type_3D.pdf", "Histogram of ABVs for most popular few types")
+
+
+###############################################################################
 # bye
 ###############################################################################
 plotList.close()

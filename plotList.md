@@ -28,3 +28,5 @@
 
 [Histogram of ABVs for each storage (in 3D)](https://nbviewer.org/github/RDMoise/many-beers/blob/main/histABV_storage_3D.pdf)
 
+[Histogram of ABVs for most popular few types](https://nbviewer.org/github/RDMoise/many-beers/blob/main/histABV_type_3D.pdf)
+
